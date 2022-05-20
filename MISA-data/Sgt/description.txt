@@ -1,0 +1,18 @@
+Case6_:
+2 Datasets, 4 SCVs (2x MISA, 1x IVA, 1x ISA), No core, var = (d+1)
+See toy_example.
+
+Case12:
+10 Datasets, 16 IVA-type SCVs, Low corr, var = (d+1)
+
+Case13:
+1 Dataset, Many ISA-type SCVs, No corr, var = (d+1)
+28 Components, changing subspace size
+- 7 subspaces, each of size 1, 2, 3, 4, 5, 6, 7, respectively.
+- 7 subspaces, each of size 4.
+
+Case14:
+1 Dataset, Many ISA-type SCVs, High corr, var = (d+1)
+28 Components, changing subspace size
+- 7 subspaces, each of size 1, 2, 3, 4, 5, 6, 7, respectively.
+- 7 subspaces, each of size 4.

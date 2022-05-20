@@ -1,5 +1,5 @@
 function [J, gJ] = objective(O,w)
-
+ 
 O.W(O.M) = O.ut.unstackW(w,O.M,O.C,O.V);
 O.Y(O.M) = cellfun(@mtimes, O.W(O.M), O.X(O.M), 'Un', 0);
 if O.sc == false

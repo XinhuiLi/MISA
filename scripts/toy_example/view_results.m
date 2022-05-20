@@ -19,7 +19,7 @@ set(gca,'xtick',[],'ytick',[])
 
 
 A_ = [];
-for kk = 1:6
+for kk = 1:data1.C(2)
     A_ = [A_; data1.W{2}(kk,:)];
     %A_ = [A_; A{2}(:,kk)'];
 end

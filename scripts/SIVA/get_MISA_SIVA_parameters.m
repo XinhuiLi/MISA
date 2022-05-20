@@ -1,6 +1,6 @@
 K = size(S{M(1)},1);   % Number of subspaces
 
-% Set Kotz parameters to multivariate lapace
+% Set Kotz parameters to multivariate laplace
 eta = ones(K,1);
 beta = .5*ones(K,1);
 lambda = ones(K,1);
@@ -24,10 +24,12 @@ preX = false;
 REtype = 'NMSE';
 
 % Use the transpose of W as the reconstruction approach
-REapproach = 'WT'; %'WT'; % 'PINV' for pseudoinverse or W
+REapproach = 'PINV'; % 'PINV' for pseudoinverse or W
+% WT: transpose when you know true solution is orthogonal
+% PINV: doesn't work if true solution is orthogonal
 
 % Tolerance level (0 means least error possible)
-RElambda = 5e-3;
+RElambda = 0;
 
 % Other parameters required by the @MISAKRE API but not used
 REref = {};

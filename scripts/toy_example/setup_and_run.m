@@ -2,11 +2,11 @@
 % % Set current folder to be the MISA folder, e.g.:
 % cd('~/MISA')
 % % Add the folder containing this file to the path, e.g.:
-% addpath('./scripts')
+addpath('./scripts')
 % % Add toy example folder to the path, e.g.:
-% addpath('./scripts/toy_example')
+addpath('./scripts/toy_example')
 % % Clear all and RUN:
-% close all; clear all; clc
+close all; clear; clc
 % % run this script
 
 
@@ -17,15 +17,16 @@
 %% Load the true sources (Y) and true mixing matrices (A) to generate the mixtures
 
 % Load sources
-load(fullfile('.','scripts','Sgt','case6_','jointsourcesMISA_case6.mat'), 'Sgt')
+load(fullfile('.','scripts','toy_example','jointsourcesMISA_case6.mat'), 'Sgt')
 Y = Sgt;
 
 % Load Tetris-String features
 load(fullfile('.','scripts','toy_example','A_TetrisString_orthofeat_r001.mat'),'A');
 
 % Generate mixtures
+ind = [1,3,4,5];
 X{1} = A{1}*Y{1};
-X{2} = A{2}*Y{2};
+X{2} = A{2}(:,ind)*Y{2}(ind,:);
 
 
 %% Define subspace structure for the sources (the following matches what was used to generate the sources)
@@ -42,18 +43,19 @@ S = cell(1,2);           % Cell array: each cell contains a matrix K x C(m).
 %S{1}([1 6 11 15]) = ones(1,4);
 S{1} = [1 0 0 0;... % source 1 into subspace 1
         0 1 0 0;... % source 2 into subspace 2
-        0 0 1 1;... % sources 3 and 4 into subspace 3
-        0 0 0 0];   % no sources from modality 1 into subspace 4
+        0 0 1 0;... % source 3 into subspace 3
+        0 0 0 1];   % source 4 into subspace 4
 
 % Modality 2 = dataset 2
 %S{2} = zeros(4,6);
 %S{2}([1 6 10 15 20 24]) = ones(1,6);
-S{2} = [1 0 0 0 0 0;... % source 1 into subspace 1
-        0 1 1 0 0 0;... % sources 2 and 3 into subspace 2
-        0 0 0 1 0 0;... % source 4 into subspace 3
-        0 0 0 0 1 1];   % sources 5 and 6 into into subspace 4 
+S{2} = [1 0 0 0;... % source 1 into subspace 1
+        0 1 0 0;... % source 2 into subspace 2
+        0 0 1 0;... % source 3 into subspace 3
+        0 0 0 1];   % source 4 into subspace 4
 
 get_MISA_parameters
+
 
 
 %% Initialize MISA object

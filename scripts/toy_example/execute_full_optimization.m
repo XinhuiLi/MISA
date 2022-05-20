@@ -59,12 +59,14 @@ optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
 % Prep and run combinatorial optimization
 aux = {data1.W; data1.objective(ut.stackW(data1.W))};
 data1.MISI(A)
-for ct = 2:3
-        data1.combinatorial_optim()
-        optprob = ut.getop(ut.stackW(data1.W), f, c, barr, {'lbfgs' m}, Tol);
-        [wout,fval,exitflag,output] = fmincon(optprob);
-        aux(:,ct) = {data1.W; data1.objective_()};
-        data1.MISI(A)
-end
-[~, ix] = min([aux{2,:}]);
-data1.objective(ut.stackW(aux{1,ix}));
+data1.combinatorial_optim()
+data1.MISI(A)
+% for ct = 2:3
+%         data1.combinatorial_optim()
+%         optprob = ut.getop(ut.stackW(data1.W), f, c, barr, {'lbfgs' m}, Tol);
+%         [wout,fval,exitflag,output] = fmincon(optprob);
+%         aux(:,ct) = {data1.W; data1.objective_()};
+%         data1.MISI(A)
+% end
+% [~, ix] = min([aux{2,:}]);
+% data1.objective(ut.stackW(aux{1,ix}));
