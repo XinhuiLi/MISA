@@ -1,3 +1,9 @@
+% size(S{M(1)},2): Number of components
+S = mat2cell(repmat((1:size(S{M(1)},2)), M_Tot, 1), ones(1,M_Tot), size(S{M(1)},2))';
+
+S = cellfun(@(s) sparse(s, s, ones(size(s)), length(s), length(s), length(s)),... 
+    S, 'un', 0);
+
 K = size(S{M(1)},1);   % Number of subspaces
 
 % Set Kotz parameters to multivariate laplace

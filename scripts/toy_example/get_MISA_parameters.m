@@ -41,6 +41,7 @@ rC = {[],[]};
 rng(100) % set the seed for reproducibility
 W0 = cell(size(A));
 for mm = M
+%     [u, s, v] = svd(randn(size(A{mm}')),'econ');
     num_comp = size(S{mm},2);
     [u, s, v] = svd(randn(size(A{mm}(:,1:num_comp)')),'econ');
     W0{mm} = u*v';

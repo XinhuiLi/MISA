@@ -14,7 +14,7 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
     M = O.M; % Save current M
     S = O.S; % Save current network structure S
     S_ = S;
-    REl = O.RElambda;
+%     REl = O.RElambda;
     % Save parameters
     old_beta = O.beta;
     old_lambda = O.lambda;
@@ -50,7 +50,8 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
 %     end
     
     % Loop through all components in all datasets:
-    O.updatesc(false);                                % Turn off scale-control
+    O.updatesc(false); % Turn off scale-control
+    
     for mm = M(1)
         w0 = O.ut.stackW(O.W); % take all weight matrices from all modalities, stack to a long vector
         % exclude subspace without source assigned
@@ -144,7 +145,7 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
     O.updatesc(sc);                                 % Set scale-control
     S = S_;
     O.update(S,M,b,l,e);
-    O.updateRElambda(REl);
+%     O.updateRElambda(REl);
 %     [~,shuff] = O.sub_perm_analysis(O.ut.stackW(O.W)); 
 %     O.objective(O.ut.stackW(cellfun(@(w,s) w(s,:), oldW(M), shuff(M), 'Un', 0)));
     w0 = O.ut.stackW(O.W(O.M));

@@ -46,3 +46,4 @@ predictors = cell(1,M_Tot);
 regtype = 'LS'; % not used
 sim1 = gsd(seed, N, M_Tot, lenK, C, S_, dist_params, ...
     V, Atype, Acond, A, SNR, predictors, regtype);
+

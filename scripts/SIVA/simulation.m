@@ -6,9 +6,11 @@ addpath("/Users/xli77/Documents/MISA/scripts");
 addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 
 % generate data
+% simple K works with one or two subspaces
 seed=7;
-K=ones(1,20);
-V=2*sum(K);
+% K=[ones(1,20), 2];
+K=1:6;
+V=sum(K);%2*sum(K);
 M_Tot=5;
 N=20000;
 Acond=3; % 1 means orthogonal matrix
@@ -26,11 +28,20 @@ X = sim_siva.genX();
 get_MISA_SIVA_parameters
 
 %% Initialize MISA object
-data1 = MISAKRE(w0, M, S, X, ...
+data1 = MISAK(w0, M, S, X, ...
                 beta, eta, lambda, ...
-                gradtype, sc, preX, ...
-                REtype, REapproach, RElambda, ...
-                REref, REreftype, REreflambda, rC);
+                gradtype, sc, preX);
+%                 REtype, REapproach, RElambda, ...
+%                 REref, REreftype, REreflambda, rC);
+
+%% Debug only
+% tmp = corr(data1.Y{1}', data1.Y{2}');
+% figure,imagesc(tmp,[-1 1]);colorbar();
+% 
+% tmp = corr(data1.Y{1}', data1.Y{1}');
+% figure,imagesc(tmp,[-1 1]);colorbar();
+
+% TODO start from here next time, cross-correlation is not diagonal
 
 %% Run MISA: PRE + LBFGS-B + Nonlinear Constraint + Combinatorial Optimization
 execute_full_optimization
