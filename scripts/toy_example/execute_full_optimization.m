@@ -46,6 +46,8 @@ woutW0 = data1.stackW(data1.W);
 %% Define objective parameters and run optimization
 
 f = @(x) data1.objective(x); % function to be optimized
+% f = @(x) MISA_mean(x); 
+
 % c = @(x) data1.con_RE(x); % nonlinear constraint function
 c = [];
 barr = 1; % barrier parameter
@@ -61,6 +63,10 @@ optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
 % Prep and run combinatorial optimization
 aux = {data1.W; data1.objective(ut.stackW(data1.W))};
 data1.MISI(A)
+
+% figure,imagesc(data1.W{1}*sim_siva.A{1},max(max(abs(data1.W{1}*sim_siva.A{1}))).*[-1 1]);colorbar();
+% figure,imagesc(data1.W{end}*sim_siva.A{end},max(max(abs(data1.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
+
 data1.combinatorial_optim()
 data1.MISI(A)
 % for ct = 2:3

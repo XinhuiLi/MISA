@@ -124,7 +124,14 @@ classdef gsd
                         SCV{kk} = mvnrnd(obj.dist(kk).mu',obj.dist(kk).R,obj.N);
                         
                     case 'Multivariate Laplace'
-                        obj.dist(kk).lambda = .5;
+                        nes = obj.d~=0;
+                        eta = 1;
+                        beta = .5;
+                        nu = exp(log(2*eta + obj.d(kk) - 2) - log(2*beta));
+                        desired_stddev = pi/sqrt(3);
+                        obj.dist(kk).lambda = exp(beta * (gammaln(nu + 1./beta) - log(obj.d(kk)) - gammaln(nu) - 2*log(desired_stddev)));
+                        
+                        %obj.dist(kk).lambda = .5;
                         
                         % Adjusted to be stddev = 1:
                         SCV{kk} = ...sqrt((1/(obj.d(kk)+1)) * det(obj.dist(kk).R)^(1/obj.d(kk))) * ...

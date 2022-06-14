@@ -2,7 +2,7 @@
 % @gsd: generate simulated data
 % @gsm: generate simulated mixing matrix
 
-function simulation()
+function simulation_beta_avg()
 
 addpath("/Users/xli77/Documents/MISA/scripts");
 addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
@@ -10,9 +10,9 @@ addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 % generate data
 % simple K works with one or two subspaces
 seed=7;
-K=2*ones(1,5);
+K=2*ones(1,10);
 V=sum(K);
-M_Tot=3;
+M_Tot=5;
 N=20000;
 Acond=3; % 1 means orthogonal matrix
 SNR=(1+999)/1;
@@ -94,14 +94,17 @@ data1 = MISAK(w0, M, S, X, ...
                 0.5*beta, eta, [], ...
                 gradtype, sc, preX);
 
-%% Debug only
-% tmp = corr(data1.Y{1}', data1.Y{2}');
-% figure,imagesc(tmp,[-1 1]);colorbar();
-% 
-% tmp = corr(data1.Y{1}', data1.Y{1}');
-% figure,imagesc(tmp,[-1 1]);colorbar();
+data2 = MISAK(w0, M, S, X, ...
+                0.35*beta, eta, [], ...
+                gradtype, sc, preX);
 
-% TODO start from here next time, cross-correlation is not diagonal
+data3 = MISAK(w0, M, S, X, ...
+                0.65*beta, eta, [], ...
+                gradtype, sc, preX);
+
+data4 = MISAK(w0, M, S, X, ...
+                beta, eta, [], ...
+                gradtype, sc, preX);
 
 %% Run MISA: PRE + LBFGS-B + Nonlinear Constraint + Combinatorial Optimization
 % execute_full_optimization
@@ -110,7 +113,7 @@ data1 = MISAK(w0, M, S, X, ...
 woutW0 = data1.stackW(data1.W);
 
 % Define objective parameters and run optimization
-f = @(x) data1.objective(x); 
+f = @(x) MISA_mean(x); 
 c = [];
 barr = 1; % barrier parameter
 m = 1; % number of past gradients to use for LBFGS-B (m = 1 is equivalent to conjugate gradient)
@@ -136,5 +139,19 @@ fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
 % view_results
 % figure,imagesc(data1.W{1}*sim_siva.A{1},max(max(abs(data1.W{1}*sim_siva.A{1}))).*[-1 1]);colorbar();
 % figure,imagesc(data1.W{end}*sim_siva.A{end},max(max(abs(data1.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
+
+    function [J, gJ] = MISA_mean(x)
+        % Calculate mean and gradient of x across data objects
+        % TODO argmax of gradients
+        J = (data1.objective(x)+data2.objective(x)+data3.objective(x)+data4.objective(x))/4;
+        if nargout > 1
+            [J1, gJ1] = data1.objective(x);
+            [J2, gJ2] = data2.objective(x);
+            [J3, gJ3] = data3.objective(x);
+            [J4, gJ4] = data4.objective(x);
+            J = (J1+J2+J3+J4)/4;
+            gJ = (gJ1+gJ2+gJ3+gJ4)/4;
+        end
+    end
 
 end

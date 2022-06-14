@@ -2,7 +2,7 @@
 % @gsd: generate simulated data
 % @gsm: generate simulated mixing matrix
 
-function simulation()
+% % function simulation()
 
 addpath("/Users/xli77/Documents/MISA/scripts");
 addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
@@ -10,9 +10,10 @@ addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 % generate data
 % simple K works with one or two subspaces
 seed=7;
-K=2*ones(1,5);
+num_subspace = 10;
+K=2*ones(1,num_subspace);
 V=sum(K);
-M_Tot=3;
+M_Tot=5;
 N=20000;
 Acond=3; % 1 means orthogonal matrix
 SNR=(1+999)/1;
@@ -30,7 +31,6 @@ X = sim_siva.genX();
 
 % size(S{M(1)},2): Number of components
 S = mat2cell(repmat((1:size(S{M(1)},2)), M_Tot, 1), ones(1,M_Tot), size(S{M(1)},2))';
-
 S = cellfun(@(s) sparse(s, s, ones(size(s)), length(s), length(s), length(s)),... 
     S, 'un', 0);
 
@@ -101,8 +101,6 @@ data1 = MISAK(w0, M, S, X, ...
 % tmp = corr(data1.Y{1}', data1.Y{1}');
 % figure,imagesc(tmp,[-1 1]);colorbar();
 
-% TODO start from here next time, cross-correlation is not diagonal
-
 %% Run MISA: PRE + LBFGS-B + Nonlinear Constraint + Combinatorial Optimization
 % execute_full_optimization
 
@@ -117,9 +115,23 @@ m = 1; % number of past gradients to use for LBFGS-B (m = 1 is equivalent to con
 N = size(X(M(1)),2); % Number of observations
 Tol = .5*N*1e-9; % tolerance for stopping criteria
 
+data1_beta = data1.beta;
+data1_lambda = data1.lambda;
+data1_eta = data1.eta;
+
 % Set optimization parameters and run
-optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
-[wout,fval,exitflag,output] = fmincon(optprob);
+for kk = 1:(K-1)
+    % TODO: Inspect autocorrelation 
+    % figure,imagesc(data1.W{1}*sim_siva.A{1},max(max(abs(data1.W{1}*sim_siva.A{1}))).*[-1 1]);colorbar();
+    % figure,imagesc(data1.W{end}*sim_siva.A{end},max(max(abs(data1.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
+
+    s = cellfun(@(s) [s(1:kk,:); sum(s((kk+1):end,:), 1)], S, 'Un', 0);
+%     auto_tune(data1.lambda);
+    data1.update(s, data1.M, data1_beta(1:(kk+1)), data1_lambda(1:(kk+1)), data1_eta(1:(kk+1)));
+    optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
+    [wout,fval,exitflag,output] = fmincon(optprob);
+    woutW0 = wout;
+end
 
 % Prep and run combinatorial optimization
 aux = {data1.W; data1.objective(ut.stackW(data1.W))};
@@ -134,7 +146,5 @@ fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
 
 %% Visualize recovered (mixing) patterns
 % view_results
-% figure,imagesc(data1.W{1}*sim_siva.A{1},max(max(abs(data1.W{1}*sim_siva.A{1}))).*[-1 1]);colorbar();
-% figure,imagesc(data1.W{end}*sim_siva.A{end},max(max(abs(data1.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
 
-end
+% end

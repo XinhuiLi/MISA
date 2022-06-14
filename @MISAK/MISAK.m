@@ -73,6 +73,8 @@ classdef MISAK < handle
             obj.d = full(sum([obj.S{obj.M}],2));  % Dimensionality of each subspace
             obj.nes = obj.d~=0;             % Non-empty subspace indexes
             obj.d_k = cellfun(@(s) full(sum(s,2)), obj.S,'Un',0);
+            obj.auto_tune('lambda', lambda);
+            
             obj.a = (obj.lambda.^(-1./(obj.beta)) .* gamma(obj.nu + 1./obj.beta)) ./ ...
                 (obj.d .* gamma(obj.nu));
             

@@ -8,7 +8,7 @@ K = size(S{M(1)},1);   % Number of subspaces
 
 % Set Kotz parameters to multivariate laplace
 eta = ones(K,1);
-beta = .5*ones(K,1);
+beta = ones(K,1);
 lambda = ones(K,1);
 
 
