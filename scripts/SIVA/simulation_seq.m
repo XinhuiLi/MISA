@@ -26,6 +26,7 @@ A = sim_siva.A;
 Y = sim_siva.Y;
 X = sim_siva.genX();
 
+
 %%
 % get_MISA_SIVA_parameters
 
@@ -94,12 +95,6 @@ data1 = MISAK(w0, M, S, X, ...
                 0.5*beta, eta, [], ...
                 gradtype, sc, preX);
 
-%% Debug only
-% tmp = corr(data1.Y{1}', data1.Y{2}');
-% figure,imagesc(tmp,[-1 1]);colorbar();
-% 
-% tmp = corr(data1.Y{1}', data1.Y{1}');
-% figure,imagesc(tmp,[-1 1]);colorbar();
 
 %% Run MISA: PRE + LBFGS-B + Nonlinear Constraint + Combinatorial Optimization
 % execute_full_optimization
@@ -121,15 +116,32 @@ data1_eta = data1.eta;
 
 % Set optimization parameters and run
 for kk = 1:(K-1)
-    % TODO: Inspect autocorrelation 
-    % figure,imagesc(data1.W{1}*sim_siva.A{1},max(max(abs(data1.W{1}*sim_siva.A{1}))).*[-1 1]);colorbar();
-    % figure,imagesc(data1.W{end}*sim_siva.A{end},max(max(abs(data1.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
 
     s = cellfun(@(s) [s(1:kk,:); sum(s((kk+1):end,:), 1)], S, 'Un', 0);
-%     auto_tune(data1.lambda);
+    
+    % Add a subspace
     data1.update(s, data1.M, data1_beta(1:(kk+1)), data1_lambda(1:(kk+1)), data1_eta(1:(kk+1)));
+    
+    % Update lambda
+    data1.auto_tune('lambda',[]);
+    
+    % Update other properties
+    data1.update(data1.S, data1.M, data1.beta, data1.lambda, data1.eta);
+    
     optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
     [wout,fval,exitflag,output] = fmincon(optprob);
+
+    % ISI
+%     for i = 1:M_Tot
+%         figure,imagesc(data1.W{i}*sim_siva.A{i},max(max(abs(data1.W{i}*sim_siva.A{i}))).*[-1 1]);colorbar();
+%     end
+    
+    % autocorrelation
+%     tmp = corr(data1.Y{1}', data1.Y{2}');
+%     figure,imagesc(tmp,[-1 1]);colorbar();
+%     tmp = corr(data1.Y{1}', data1.Y{1}');
+%     figure,imagesc(tmp,[-1 1]);colorbar();
+
     woutW0 = wout;
 end
 
@@ -139,6 +151,7 @@ data1.MISI(A)
 
 data1.combinatorial_optim()
 data1.MISI(A)
+
 
 %% Check results
 fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
