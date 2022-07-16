@@ -30,7 +30,7 @@ end
 
 % cr: maximum value of the correlation for each subspace
 % MVK: a mixture of Gaussian where weights follow a gamma distribution
-cr = linspace(.65,.85,lenK);
+cr = linspace(.85,.95,lenK);
 for kk = 1:lenK
     dist_params(kk).name = 'mvl';
     dist_params(kk).mu   = zeros(sum([S_{kk,:}] ~= 0),1);

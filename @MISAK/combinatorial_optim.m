@@ -2,11 +2,11 @@ function combinatorial_optim(O, varargin)
 % Solve combinatorial optimization
 
 if ~isempty(varargin)
-    w0 = O.greedysearch_iva(varargin{1});
-%     w0 = O.greedysearch(varargin{1});
+%     w0 = O.greedysearch_iva(varargin{1});
+    w0 = O.greedysearch(varargin{1});
 else
-    w0 = O.greedysearch_iva();
-%     w0 = O.greedysearch();
+%     w0 = O.greedysearch_iva();
+    w0 = O.greedysearch();
 end
 
 

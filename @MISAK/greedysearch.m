@@ -14,7 +14,7 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
     M = O.M; % Save current M
     S = O.S; % Save current network structure S
     S_ = S;
-    REl = O.RElambda;
+%     REl = O.RElambda;
     % Save parameters
     old_beta = O.beta;
     old_lambda = O.lambda;
@@ -40,8 +40,8 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
         w0 = O.ut.stackW(O.W(mm));
         
         % Setup and run ICA on dataset mm:
-        O.updateRElambda(0);
-        O.updateRElambda(O.opt_RE(w0));
+%         O.updateRElambda(0);
+%         O.updateRElambda(O.opt_RE(w0));
         optprob = O.ut.getop(w0, @(x) O.objective(x), [], 1, {'lbfgs' 10}, 1e-9); % For sim results, remove barrier, lbfgs and tol params
         optprob.options.MaxIter = 1000; % For sim results, comment this
         [woutT,fvalT,exitflagT,outputT] = fmincon(optprob);
@@ -85,8 +85,13 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
             S_{mm}(end,kk) = 1;                       % Assign to new subspace
             O.update(S_,mm,[b'; b(end)],[l'; l(end)],[e'; e(end)]); % Update S and set M = mm
             misa_values(ss+1) = O.objective(w0);
+            
+%             global sim_siva;
+%             figure,imagesc(O.W{1}*sim_siva.A{1},max(max(abs(O.W{1}*sim_siva.A{1}))).*[-1 1]);colorbar();
+%             figure,imagesc(O.W{end}*sim_siva.A{end},max(max(abs(O.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
+
             [~,ix] = min(misa_values);                % best subspace for component cc
-            imagesc(full(S_{mm}))
+            figure,imagesc(full(S_{mm}))
             drawnow()
             ix = find(misa_values == misa_values(ix));
             if sum(ix == (ss+1)) > 0
@@ -127,7 +132,7 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
     end
     O.updatesc(sc);                                 % Set scale-control
     O.update(S,M,old_beta,old_lambda,old_eta);
-    O.updateRElambda(REl);
+%     O.updateRElambda(REl);
     [~,shuff] = O.sub_perm_analysis(O.ut.stackW(O.W));
     O.objective(O.ut.stackW(cellfun(@(w,s) w(s,:), oldW(M), shuff(M), 'Un', 0)));
     w0 = O.ut.stackW(O.W(O.M));

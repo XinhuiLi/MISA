@@ -1,7 +1,7 @@
-% close all; clear; clc;
+close all; clear; clc;
 % @gsd: generate simulated data
 % @gsm: generate simulated mixing matrix
-
+%%
 % % function simulation()
 
 addpath("/Users/xli77/Documents/MISA/scripts");
@@ -10,7 +10,7 @@ addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 % generate data
 % simple K works with one or two subspaces
 seed=7;
-num_subspace = 10;
+num_subspace=10;
 K=2*ones(1,num_subspace);
 V=sum(K);
 M_Tot=5;
@@ -26,6 +26,20 @@ A = sim_siva.A;
 Y = sim_siva.Y;
 X = sim_siva.genX();
 
+%%
+Y_concat = cat(1, Y{:});
+ind = zeros(size(Y_concat,1),1);
+
+C = sim_siva.C;
+for i = 1:C(1)
+    ind( (i-1)*5+(1:5) ) = i:C(1):sum(C);
+end
+
+Y_corr = corr(Y_concat');
+figure,imagesc(Y_corr,[-1 1]);colorbar;
+
+Y_corr = corr(Y_concat(ind,:)');
+figure,imagesc(Y_corr,[-1 1]);colorbar;
 
 %%
 % get_MISA_SIVA_parameters
