@@ -1,5 +1,5 @@
-function sim1 = sim_basic_SIVA(seed,K,V,M_Tot,N,Acond,SNR)
-% sim_basic_SIVA(seed,K,V,M_Tot,N,Acond,SNR)
+function sim1 = sim_MISA(seed,S_,V,N,Acond,SNR)
+% sim_MISA(seed,K,V,M_Tot,N,Acond,SNR)
 % K: number of subspaces -> a vector of number of sources per subspace
 % V: data dimension
 % M_Tot: total number of modalities
@@ -18,9 +18,9 @@ function sim1 = sim_basic_SIVA(seed,K,V,M_Tot,N,Acond,SNR)
 % S_ = S_';
 % [K, M_Tot] = size(S_);
 
-S_ = mat2cell(repmat((1:sum(K)), M_Tot, 1), ones(1,M_Tot), K)';
+% S_ = mat2cell(repmat((1:sum(K)), M_Tot, 1), ones(1,M_Tot), K)';
 
-lenK = length(K);
+[lenK, M_Tot] = size(S_);
 
 % C: vector of total number of sources per modality, infer from S_
 C = [];

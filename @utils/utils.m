@@ -26,6 +26,8 @@ classdef utils
         optprob = getop(w0,varargin)
         X = myicdf(name,U,varargin)
         [Ywht,whtM,dewhtM,Ybr,brM,debrM] = myPCA(Y)
+        [whtM, H] = doMMGPCA(X, comps, rec_type)
+        [wout,fval,exitflag,output] = run_MISA(misa_obj,W0)
     end
 end % End of classdef
 
