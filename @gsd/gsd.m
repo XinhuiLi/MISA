@@ -175,7 +175,7 @@ classdef gsd
             obj.Y = cell(1,max(obj.M));
 
             for kk = 1:obj.K
-%                 ss = 0;
+                ss = 0;
                 set_ = 1:size(SCV{kk},2);
                 done = false(1,max(obj.M));
                 selected = cell(1,max(obj.M));
@@ -199,23 +199,23 @@ classdef gsd
                 end
                 
                 for mm = obj.M
-%                     ss_ = sum(logical(obj.S{mm}(kk,:)));
-%                     numY = size(obj.Y{obj.M(mm)},1);
+                    ss_ = sum(logical(obj.S{mm}(kk,:)));
+                    numY = size(obj.Y{obj.M(mm)},1);
                     obj.Y{obj.M(mm)} = [obj.Y{obj.M(mm)}; SCV{kk}(:,selected{mm})'];
                     if kk == 1
                         obj.Ryy{mm} = zeros(obj.C(mm));
                     end
                     if strcmpi(obj.dist(kk).name, 'Multivariate K') || ...
                         strcmpi(obj.dist(kk).name, 'Gaussian Copula')
-%                         obj.Ryy{mm}(numY+(1:ss_),numY+(1:ss_)) = cov(obj.Y{obj.M(mm)}(numY+(1:ss_),:)');
-                        obj.Ryy{mm}(selected{mm},selected{mm}) = cov(obj.Y{obj.M(mm)}(selected{mm},:)');
+                        obj.Ryy{mm}(numY+(1:ss_),numY+(1:ss_)) = cov(obj.Y{obj.M(mm)}(numY+(1:ss_),:)');
+                        % obj.Ryy{mm}(selected{mm},selected{mm}) = cov(obj.Y{obj.M(mm)}(selected{mm},:)');
                     else
-%                         obj.Ryy{mm}(numY+(1:ss_),numY+(1:ss_)) = (obj.d(kk)+1) * ...
-%                             obj.dist(kk).R(ss+(1:ss_),ss+(1:ss_));
-                        obj.Ryy{mm}(selected{mm},selected{mm}) = (obj.d(kk)+1) * ...
-                            obj.dist(kk).R(selected{mm},selected{mm});
+                        obj.Ryy{mm}(numY+(1:ss_),numY+(1:ss_)) = (obj.d(kk)+1) * ...
+                            obj.dist(kk).R(ss+(1:ss_),ss+(1:ss_));
+                        % obj.Ryy{mm}(selected{mm},selected{mm}) = (obj.d(kk)+1) * ...
+                        %     obj.dist(kk).R(selected{mm},selected{mm});
                     end
-%                     ss = ss + ss_;
+                    ss = ss + ss_;
                 end
             end
             
