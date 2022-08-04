@@ -2,6 +2,8 @@ close all; clear; clc;
 % @gsd: generate simulated data
 % @gsm: generate simulated mixing matrix
 
+debug = false;
+
 addpath("/Users/xli77/Documents/MISA/scripts");
 addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 addpath(genpath('/Users/xli77/Documents/gift/GroupICATv4.0c'));
@@ -48,7 +50,7 @@ V = [20000,20000];
 %       [     ], [     ], [   10]; ...
 %       [     ], [   11], [     ]; ...
 %       [     ], [   12], [     ]};
-
+% 
 % V = [sum([S_{:,1}] ~= 0), sum([S_{:,2}] ~= 0), sum([S_{:,3}] ~= 0)]; 
 
 sim_misa = sim_MISA(seed,S_,V,N,Acond,SNR);
@@ -59,6 +61,7 @@ Y = sim_misa.Y;
 X = sim_misa.genX();
 
 ut = utils;
+% TODO try PC=15
 num_pc = 12; %sum([S_{:,1}] ~= 0);
 [whtM, H] = ut.doMMGPCA(X, num_pc, 'WT');
 
@@ -90,7 +93,6 @@ gica1 = MISAK(w0, 1, {eye(size(H,1))}, {H}, ...
 % the whitening matrix is an identity matrix, different from the whitening matrix from PCA
 % sphering turns off PCA
 [W1,wht] = icatb_runica(H,'weights',gica1.W{1},'ncomps',size(H,1),'sphering', 'off', 'verbose', 'off', 'posact', 'off', 'bias', 'on');
-
 std_W1 = std(W1*H,[],2); % Ignoring wht because Infomax run with 'sphering' 'off' --> wht = eye(comps)
 W1 = diag(pi/sqrt(3) ./ std_W1) * W1; 
 
@@ -103,6 +105,7 @@ gica1.objective(ut.stackW({diag(pi/sqrt(3) ./ std_gica1_W1)*gica1.W{1}})); % upd
 
 % Combine MISA GICA with whitening matrices to initialize multimodal model
 W = cellfun(@(w) w,whtM,'Un',0);
+% TODO try ICA+PCA weight and compare with PCA weight
 % W = cellfun(@(w) gica1.W{1}*w,whtM,'Un',0);
 W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
@@ -130,18 +133,9 @@ W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
 rng(100) % set the seed for reproducibility
 
-% W0 = cell(size(A));
-% for mm = M
-%     num_comp = size(S{mm},2);
-%     [u, s, v] = svd(randn(size(A{mm}(:,1:num_comp)')),'econ');
-%     W0{mm} = u*v';
-% end
-% 
-% ut = utils;
-% w0 = ut.stackW(W0(M)); % vectorize unmixing matrix for compatibility with Matlab's optimization toolbox
+w0_new = ut.stackW(W(M));
 
 %% Initialize MISA object
-w0_new = ut.stackW(W(M));
 
 data1 = MISAK(w0_new, M, S, X, ...
                 0.5*beta, eta, [], ...
@@ -152,47 +146,53 @@ for mm = M
 end
 w0_short = ut.stackW(W0);
 
+% 1: data1.Y = data1.W * X
+% 2: data2.Y = data2.W * data1.Y
+% By 1 and 2: data2.Y = data2.W * data1.W * X
 data2 = MISAK(w0_short, data1.M, data1.S, data1.Y, ...
                 0.5*beta, eta, [], ...
                 gradtype, sc, preX);
 
-
 %% Debug only
-% cross-modality correlation
-figure,
-tmp = corr(data1.Y{1}', data1.Y{2}');
-subplot(1,2,1),imagesc(tmp,[-1 1]);colorbar();
-
-tmp = corr(data2.Y{1}', data2.Y{2}');
-subplot(1,2,2),imagesc(tmp,[-1 1]);colorbar();
-
-% cross-dataset correlation
-figure,
-tmp = corr(data1.Y{1}', data2.Y{1}');
-subplot(1,2,1),imagesc(tmp,[-1 1]);colorbar();
-
-tmp = corr(data1.Y{1}', data1.Y{1}');
-subplot(1,2,2),imagesc(tmp,[-1 1]);colorbar();
-
-% cross-modality self-correlation
-Y_cat = cat(2, Y{1}', Y{2}');
-figure, 
-imagesc(corr(Y_cat),[-1 1]); colorbar();
-
-% cross-modality self-correlation (first subspace)
-Y_cat2 = cat(2, Y{1}(1:3,:)', Y{2}(1:3,:)');
-figure, 
-imagesc(corr(Y_cat2),[-1 1]); colorbar();
+if debug
+    % cross-modality correlation
+    figure,
+    tmp = corr(data1.Y{1}', data1.Y{2}');
+    subplot(1,2,1),imagesc(tmp,[-1 1]);colorbar();
+    
+    tmp = corr(data2.Y{1}', data2.Y{2}');
+    subplot(1,2,2),imagesc(tmp,[-1 1]);colorbar();
+    
+    % cross-dataset correlation
+    figure,
+    tmp = corr(data1.Y{1}', data2.Y{1}');
+    subplot(1,2,1),imagesc(tmp,[-1 1]);colorbar();
+    
+    tmp = corr(data1.Y{1}', data1.Y{1}');
+    subplot(1,2,2),imagesc(tmp,[-1 1]);colorbar();
+    
+    % cross-modality self-correlation
+    Y_cat = cat(2, Y{1}', Y{2}');
+    figure, 
+    imagesc(corr(Y_cat),[-1 1]); colorbar();
+    
+    % cross-modality self-correlation (first subspace)
+    Y_cat2 = cat(2, Y{1}(1:3,:)', Y{2}(1:3,:)');
+    figure, 
+    imagesc(corr(Y_cat2),[-1 1]); colorbar();
+end
 
 %% Run MISA: PRE + LBFGS-B + Nonlinear Constraint + Combinatorial Optimization
 % execute_full_optimization
-data1 = data2;
 
 % Prep starting point: optimize RE to ensure initial W is in the feasible region
-woutW0 = data1.stackW(W);
+% woutW0 = data1.stackW(data1.W);
+woutW0 = data2.stackW(data2.W);
 
 % Define objective parameters and run optimization
-f = @(x) data1.objective(x); 
+% f = @(x) data1.objective(x); 
+f = @(x) data2.objective(x); 
+
 c = [];
 barr = 1; % barrier parameter
 m = 1; % number of past gradients to use for LBFGS-B (m = 1 is equivalent to conjugate gradient)
@@ -204,49 +204,78 @@ optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
 [wout,fval,exitflag,output] = fmincon(optprob);
 
 % Prep and run combinatorial optimization
-aux = {data1.W; data1.objective(ut.stackW(data1.W))};
-data1.MISI(A)
+% aux = {data1.W; data1.objective(ut.stackW(data1.W))};
+% aux = {final_W; data1.objective(ut.stackW(final_W))};
+% data1.W = final_W;
+aux = {data2.W; data2.objective(ut.stackW(data2.W))};
 
-% data2_W = {data1.W{2}, data1.W{1}};
-% data2_w0 = ut.stackW(data2_W);
-% data2 = MISAK(data2_w0, data1.M, {data1.S{2},data1.S{1}}, {data1.X{2},data1.X{1}}, ...
-%                 0.5*beta, eta, lambda, ...
-%                 gradtype, sc, preX);
-% data2.combinatorial_optim()
+% final_W = cell(1,2);
+% for mm = M
+%     final_W{mm} = data2.W{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
+% end
+% data1.objective(ut.stackW(final_W))
+% data1.MISI(A)
+
+% Question: 
+% Should we run combinatorial optimization on data2 as it's super slow on data1? 
+% - Yes
+% How to evaluate MISI on data2? 
+% - Update W matrix in data1
 
 tic
-data1.combinatorial_optim()
-data1.MISI(A)
+% data1.combinatorial_optim()
+data2.combinatorial_optim()
+
+% final_W = cell(1,2);
+% for mm = M
+%     final_W{mm} = data2.W{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
+% end
+% data1.objective(ut.stackW(final_W))
+% data1.MISI(A)
 toc
 
-for ct = 2:5
-        data1.combinatorial_optim()
-        optprob = ut.getop(ut.stackW(data1.W), f, c, barr, {'lbfgs' m}, Tol);
+for ct = 2:10
+%         data1.combinatorial_optim()
+%         optprob = ut.getop(ut.stackW(data1.W), f, c, barr, {'lbfgs' m}, Tol);
+        data2.combinatorial_optim()
+        optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
         [wout,fval,exitflag,output] = fmincon(optprob);
-        aux(:,ct) = {data1.W; data1.objective_()};
-        data1.MISI(A)
+%         aux(:,ct) = {data1.W; data1.objective_()};
+        aux(:,ct) = {data2.W; data2.objective_()};
+        
+%         final_W = cell(1,2);
+%         for mm = M
+%             final_W{mm} = data2.W{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
+%         end
+%         data1.objective(ut.stackW(final_W))
+%         data1.MISI(A)
 end
 [~, ix] = min([aux{2,:}]);
-data1.objective(ut.stackW(aux{1,ix}));
 
-%% Check results
-fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
-% typically, a number < 0.1 indicates successful recovery of the sources
+% final_W = cell(1,2);
+% for mm = M
+%     final_W{mm} = aux{1,ix}{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
+% end
+% data1.objective(ut.stackW(final_W));
+
+% data1.objective(ut.stackW(aux{1,ix}));
+data2.objective(ut.stackW(aux{1,ix}));
 
 %% Visualize recovered (mixing) patterns
 % view_results
-figure,imagesc(data1.W{1}*sim_misa.A{1},max(max(abs(data1.W{1}*sim_misa.A{1}))).*[-1 1]);colorbar();
-figure,imagesc(data1.W{end}*sim_misa.A{end},max(max(abs(data1.W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
+figure,imagesc((data2.W{1}*data1.W{1})*sim_misa.A{1},max(max(abs((data2.W{1}*data1.W{1})*sim_misa.A{1}))).*[-1 1]);colorbar();
+figure,imagesc((data2.W{end}*data1.W{end})*sim_misa.A{end},max(max(abs((data2.W{end}*data1.W{end})*sim_misa.A{end}))).*[-1 1]);colorbar();
 
-% figure,imagesc(data1.W{1}*sim_siva.A{1},max(max(abs(data1.W{1}*sim_siva.A{1}))).*[-1 1]);colorbar();
-% figure,imagesc(data1.W{end}*sim_siva.A{end},max(max(abs(data1.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
+% figure,imagesc(data1.W{1}*sim_misa.A{1},max(max(abs(data1.W{1}*sim_misa.A{1}))).*[-1 1]);colorbar();
+% figure,imagesc(data1.W{end}*sim_misa.A{end},max(max(abs(data1.W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
 
-%%
-% Y_concat = cat(1, data1.Y{:});
-% Y_corr = corr(Y_concat');
-% figure,imagesc(Y_corr,[-1 1]);colorbar;
+%% Check results
+% fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
+% typically, a number < 0.1 indicates successful recovery of the sources
 
-%%
-% sim_siva_Y_concat = cat(1, sim_siva.Y{:});
-% sim_siva_Y_corr = corr(sim_siva_Y_concat');
-% figure,imagesc(sim_siva_Y_corr,[-1 1]);colorbar;
+final_W = cell(1,2);
+for mm = M
+    final_W{mm} = aux{1,ix}{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
+end
+data1.objective(ut.stackW(final_W));
+data1.MISI(A)

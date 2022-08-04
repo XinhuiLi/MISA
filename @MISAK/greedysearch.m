@@ -86,8 +86,8 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
             O.update(S_,mm,[b'; b(end)],[l'; l(end)],[e'; e(end)]); % Update S and set M = mm
             misa_values(ss+1) = O.objective(w0);
             
-            global sim_siva;
-            figure,imagesc(O.W{mm}*sim_siva.A{mm},max(max(abs(O.W{mm}*sim_siva.A{mm}))).*[-1 1]);colorbar();
+%             global sim_siva;
+%             figure,imagesc(O.W{mm}*sim_siva.A{mm},max(max(abs(O.W{mm}*sim_siva.A{mm}))).*[-1 1]);colorbar();
 %             figure,imagesc(O.W{end}*sim_siva.A{end},max(max(abs(O.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
 
             [~,ix] = min(misa_values);                % best subspace for component cc
