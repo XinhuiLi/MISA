@@ -40,19 +40,6 @@ S_ = {[1 2 3], [1 2 3]; ...
 
 V = [20000,20000];
 
-% test only
-% S_ = {[1 2 3 4], [1 2 3], [1 2]; ...
-%       [5 6], [4 5 6], [3 4 5 6]; ...
-%       [7 8 9], [7 8 9 10], [7 8 9]; ...
-%       [   10], [     ], [     ]; ...
-%       [   11], [     ], [     ]; ...
-%       [   12], [     ], [     ]; ...
-%       [     ], [     ], [   10]; ...
-%       [     ], [   11], [     ]; ...
-%       [     ], [   12], [     ]};
-% 
-% V = [sum([S_{:,1}] ~= 0), sum([S_{:,2}] ~= 0), sum([S_{:,3}] ~= 0)]; 
-
 sim_misa = sim_MISA(seed,S_,V,N,Acond,SNR);
 S = sim_misa.S;
 M = sim_misa.M;
@@ -71,7 +58,6 @@ K = size(S{1},1);
 eta = ones(K,1);
 beta = ones(K,1);
 lambda = ones(K,1);
-
 
 %% Set additional parameters for MISA
 
@@ -186,11 +172,9 @@ end
 % execute_full_optimization
 
 % Prep starting point: optimize RE to ensure initial W is in the feasible region
-% woutW0 = data1.stackW(data1.W);
 woutW0 = data2.stackW(data2.W);
 
 % Define objective parameters and run optimization
-% f = @(x) data1.objective(x); 
 f = @(x) data2.objective(x); 
 
 c = [];
@@ -204,78 +188,55 @@ optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
 [wout,fval,exitflag,output] = fmincon(optprob);
 
 % Prep and run combinatorial optimization
-% aux = {data1.W; data1.objective(ut.stackW(data1.W))};
-% aux = {final_W; data1.objective(ut.stackW(final_W))};
-% data1.W = final_W;
 aux = {data2.W; data2.objective(ut.stackW(data2.W))};
-
-% final_W = cell(1,2);
-% for mm = M
-%     final_W{mm} = data2.W{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
-% end
-% data1.objective(ut.stackW(final_W))
-% data1.MISI(A)
-
-% Question: 
-% Should we run combinatorial optimization on data2 as it's super slow on data1? 
-% - Yes
-% How to evaluate MISI on data2? 
-% - Update W matrix in data1
-
-tic
-% data1.combinatorial_optim()
-data2.combinatorial_optim()
-
-% final_W = cell(1,2);
-% for mm = M
-%     final_W{mm} = data2.W{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
-% end
-% data1.objective(ut.stackW(final_W))
-% data1.MISI(A)
-toc
-
-for ct = 2:10
-%         data1.combinatorial_optim()
-%         optprob = ut.getop(ut.stackW(data1.W), f, c, barr, {'lbfgs' m}, Tol);
-        data2.combinatorial_optim()
-        optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
-        [wout,fval,exitflag,output] = fmincon(optprob);
-%         aux(:,ct) = {data1.W; data1.objective_()};
-        aux(:,ct) = {data2.W; data2.objective_()};
-        
-%         final_W = cell(1,2);
-%         for mm = M
-%             final_W{mm} = data2.W{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
-%         end
-%         data1.objective(ut.stackW(final_W))
-%         data1.MISI(A)
-end
-[~, ix] = min([aux{2,:}]);
-
-% final_W = cell(1,2);
-% for mm = M
-%     final_W{mm} = aux{1,ix}{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
-% end
-% data1.objective(ut.stackW(final_W));
-
-% data1.objective(ut.stackW(aux{1,ix}));
-data2.objective(ut.stackW(aux{1,ix}));
-
-%% Visualize recovered (mixing) patterns
-% view_results
-figure,imagesc((data2.W{1}*data1.W{1})*sim_misa.A{1},max(max(abs((data2.W{1}*data1.W{1})*sim_misa.A{1}))).*[-1 1]);colorbar();
-figure,imagesc((data2.W{end}*data1.W{end})*sim_misa.A{end},max(max(abs((data2.W{end}*data1.W{end})*sim_misa.A{end}))).*[-1 1]);colorbar();
-
-% figure,imagesc(data1.W{1}*sim_misa.A{1},max(max(abs(data1.W{1}*sim_misa.A{1}))).*[-1 1]);colorbar();
-% figure,imagesc(data1.W{end}*sim_misa.A{end},max(max(abs(data1.W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
-
-%% Check results
-% fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
-% typically, a number < 0.1 indicates successful recovery of the sources
 
 final_W = cell(1,2);
 for mm = M
-    final_W{mm} = aux{1,ix}{mm} * data1.W{mm}; % data2.W is 12x12, data1.W is 12x20k
+    final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, W is 12x20k
+end
+data1.objective(ut.stackW(final_W))
+data1.MISI(A)
+
+tic
+data2.combinatorial_optim()
+
+final_W = cell(1,2);
+for mm = M
+    final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
+end
+data1.objective(ut.stackW(final_W))
+data1.MISI(A)
+toc
+
+for ct = 2:5
+        data2.combinatorial_optim()
+        optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
+        [wout,fval,exitflag,output] = fmincon(optprob);
+        aux(:,ct) = {data2.W; data2.objective_()};
+        
+        final_W = cell(1,2);
+        for mm = M
+            final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
+        end
+        data1.objective(ut.stackW(final_W))
+        data1.MISI(A)
+end
+[~, ix] = min([aux{2,:}]);
+
+final_W = cell(1,2);
+for mm = M
+    final_W{mm} = aux{1,ix}{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
 end
 data1.objective(ut.stackW(final_W));
-data1.MISI(A)
+
+%% Check results
+fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
+% typically, a number < 0.1 indicates successful recovery of the sources
+
+%% Visualize recovered (mixing) patterns
+% view_results
+% figure,imagesc((data2.W{1}*data1.W{1})*sim_misa.A{1},max(max(abs((data2.W{1}*data1.W{1})*sim_misa.A{1}))).*[-1 1]);colorbar();
+% figure,imagesc((data2.W{end}*data1.W{end})*sim_misa.A{end},max(max(abs((data2.W{end}*data1.W{end})*sim_misa.A{end}))).*[-1 1]);colorbar();
+
+figure,imagesc(data1.W{1}*sim_misa.A{1},max(max(abs(data1.W{1}*sim_misa.A{1}))).*[-1 1]);colorbar();
+figure,imagesc(data1.W{end}*sim_misa.A{end},max(max(abs(data1.W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
