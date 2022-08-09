@@ -11,22 +11,8 @@ addpath(genpath('/Users/xli77/Documents/gift/GroupICATv4.0c'));
 % generate data
 % simple K works with one or two subspaces
 seed=7;
-% K=[1 1 1 1 1 1 1 1 1 1 1 1]; %[2,2,1,1,1];
-% num_subspace=length(K);
-% V=sum(K);
-% V = [20000,20000];
-% M_Tot=2;
-N=3000;
 Acond=3; % 1 means orthogonal matrix
 SNR=(1+999)/1;
-
-% global sim_siva;
-% sim_siva = sim_basic_SIVA(seed,K,V,M_Tot,N,Acond,SNR);
-% S = sim_siva.S;
-% M = sim_siva.M;
-% A = sim_siva.A;
-% Y = sim_siva.Y;
-% X = sim_siva.genX();
 
 S_ = {[1 2 3], [1 2 3]; ...
       [4 5 6], [4 5 6]; ...
@@ -38,23 +24,16 @@ S_ = {[1 2 3], [1 2 3]; ...
       [     ], [   11]; ...
       [     ], [   12]};
 
-V = [20000,20000];
+M = [1, 2];
 
-sim_misa = sim_MISA(seed,S_,V,N,Acond,SNR);
-S = sim_misa.S;
-M = sim_misa.M;
-A = sim_misa.A;
-Y = sim_misa.Y;
-X = sim_misa.genX();
+X = load('/Users/xli77/Documents/MISA/MISA-data/sMRI-fMRI/X.mat').X;
 
 ut = utils;
-% TODO try PC=15
 num_pc = 12; %sum([S_{:,1}] ~= 0);
 [whtM, H] = ut.doMMGPCA(X, num_pc, 'WT');
 
 % Set Kotz parameters to multivariate laplace
-K = size(S{1},1);
-
+K = size(S_,1);
 eta = ones(K,1);
 beta = ones(K,1);
 lambda = ones(K,1);
@@ -90,23 +69,44 @@ std_gica1_W1 = std(gica1.Y{1},[],2);
 gica1.objective(ut.stackW({diag(pi/sqrt(3) ./ std_gica1_W1)*gica1.W{1}})); % update gica1.W{1}
 
 % Combine MISA GICA with whitening matrices to initialize multimodal model
-W = cellfun(@(w) w,whtM,'Un',0);
-% TODO try ICA+PCA weight and compare with PCA weight
-% W = cellfun(@(w) gica1.W{1}*w,whtM,'Un',0);
+% W = cellfun(@(w) w,whtM,'Un',0);
+W = cellfun(@(w) gica1.W{1}*w,whtM,'Un',0);
 W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
-%% Initialize MISA object
+%% Define the starting point (for this problem an orthogonal unmixing matrix, since the features A are orthogonal).
 
 rng(100) % set the seed for reproducibility
 
 w0_new = ut.stackW(W(M));
+
+%% Initialize MISA object
+
+S = cell(size(M));
+% from gsd.m
+for mm = M
+    if issparse(S_{mm})
+        S{mm} = S_{mm};
+    else
+        ii = [];
+        jj = [];
+        for ii_ = 1:K
+            jj_ = length(S_{ii_,mm});
+            if jj_ ~= 0
+                jj = [jj S_{ii_,mm}];
+                ii = [ii ii_*ones(1,jj_)];
+            end
+        end
+        S{mm} = sparse(ii, jj, ones(1,sum([S_{:,mm}] ~= 0)), ...
+            K, sum([S_{:,mm}] ~= 0), sum([S_{:,mm}] ~= 0));
+    end
+end
 
 data1 = MISAK(w0_new, M, S, X, ...
                 0.5*beta, eta, [], ...
                 gradtype, sc, preX);
 
 for mm = M
-    W0{mm} = [eye(num_pc),zeros(num_pc,size(Y{M(1)},1)-num_pc)];
+    W0{mm} = [eye(num_pc)];
 end
 w0_short = ut.stackW(W0);
 
@@ -156,12 +156,11 @@ woutW0 = data2.stackW(data2.W);
 f = @(x) data2.objective(x); 
 
 c = [];
-barr = 1; % Barrier parameter
-m = 1; % Number of past gradients to use for LBFGS-B (m = 1 is equivalent to conjugate gradient)
+barr = 1; % barrier parameter
+m = 1; % number of past gradients to use for LBFGS-B (m = 1 is equivalent to conjugate gradient)
 N = size(X(M(1)),2); % Number of observations
-Tol = .5*N*1e-9; % Tolerance for stopping criteria
-n_iter = 10; % Number of combinatorial optimization
-isi = zeros(1, n_iter+1);
+Tol = .5*N*1e-9; % tolerance for stopping criteria
+n_iter = 50; % Number of combinatorial optimization
 
 % Set optimization parameters and run
 optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
@@ -172,12 +171,11 @@ aux = {data2.W; data2.objective(ut.stackW(data2.W))};
 
 final_W = cell(1,2);
 for mm = M
-    final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, W is 12x20k
+    final_W{mm} = data2.W{mm} * W{mm};
 end
 data1.objective(ut.stackW(final_W))
-isi(1) = data1.MISI(A)
 
-for ct = 2:n_iter+1
+for ct = 1:n_iter
         data2.combinatorial_optim()
         optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
         [wout,fval,exitflag,output] = fmincon(optprob);
@@ -185,27 +183,28 @@ for ct = 2:n_iter+1
         
         final_W = cell(1,2);
         for mm = M
-            final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
+            final_W{mm} = data2.W{mm} * W{mm};
         end
         data1.objective(ut.stackW(final_W))
-        isi(ct) = data1.MISI(A)
 end
 [~, ix] = min([aux{2,:}]);
 
 final_W = cell(1,2);
 for mm = M
-    final_W{mm} = aux{1,ix}{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
+    final_W{mm} = aux{1,ix}{mm} * W{mm};
 end
 data1.objective(ut.stackW(final_W));
 
 %% Check results
-fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
+% fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
 % typically, a number < 0.1 indicates successful recovery of the sources
 
 %% Visualize recovered (mixing) patterns
 % view_results
-% figure,imagesc((data2.W{1}*data1.W{1})*sim_misa.A{1},max(max(abs((data2.W{1}*data1.W{1})*sim_misa.A{1}))).*[-1 1]);colorbar();
-% figure,imagesc((data2.W{end}*data1.W{end})*sim_misa.A{end},max(max(abs((data2.W{end}*data1.W{end})*sim_misa.A{end}))).*[-1 1]);colorbar();
+figure,imagesc(corr(data1.Y{1}',data1.Y{2}'),max(max(abs(corr(data1.Y{1}',data1.Y{2}')))).*[-1 1]);colorbar();
+figure,imagesc(corr(data1.Y{1}',data1.Y{1}'),max(max(abs(corr(data1.Y{1}',data1.Y{1}')))).*[-1 1]);colorbar();
+figure,imagesc(corr(data1.Y{2}',data1.Y{2}'),max(max(abs(corr(data1.Y{2}',data1.Y{2}')))).*[-1 1]);colorbar();
+figure,plot(1:50,[aux{2,:}],'o-');
 
-figure,imagesc(data1.W{1}*sim_misa.A{1},max(max(abs(data1.W{1}*sim_misa.A{1}))).*[-1 1]);colorbar();
-figure,imagesc(data1.W{end}*sim_misa.A{end},max(max(abs(data1.W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
+%%
+% save '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/neuroimaging/aux.mat' 'aux'
