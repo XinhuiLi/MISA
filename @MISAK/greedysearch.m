@@ -66,7 +66,7 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
         % Component permutation analysis (per dataset):
         % The following is a GREEDY SEARCH on the space component
         % assignements to subspaces
-        figure
+%         figure
         for cc = randperm(size(S{mm}, 2))%1:size(S_{mm}, 2)%
             current = find(S_{mm}(:,cc));             % current subspace for component cc
             kk = find(S_{mm}(current,:));
@@ -91,7 +91,7 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
 %             figure,imagesc(O.W{end}*sim_siva.A{end},max(max(abs(O.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
 
             [~,ix] = min(misa_values);                % best subspace for component cc
-            imagesc(full(S_{mm}))
+%             imagesc(full(S_{mm}))
             drawnow()
             ix = find(misa_values == misa_values(ix));
             if sum(ix == (ss+1)) > 0
@@ -130,12 +130,13 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
         oldW{mm} = oldW{mm}(shuff,:);
         O.objective(O.ut.stackW({O.W{mm}(shuff,:)}));
     end
-    O.updatesc(sc);                                 % Set scale-control
+    
     O.update(S,M,old_beta,old_lambda,old_eta);
 %     O.updateRElambda(REl);
     [~,shuff] = O.sub_perm_analysis(O.ut.stackW(O.W));
     O.objective(O.ut.stackW(cellfun(@(w,s) w(s,:), oldW(M), shuff(M), 'Un', 0)));
     w0 = O.ut.stackW(O.W(O.M));
+    O.updatesc(sc);                                 % Set scale-control
     
 else
     w0 = O.ut.stackW(O.W(O.M));

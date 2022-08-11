@@ -9,9 +9,14 @@ else
     w0 = O.greedysearch();
 end
 
-
 % w0 = O.sub_perm_analysis(w0);
 
-O.objective(w0);
+ut = utils;
+stdY1 = std(O.Y{1},[],2);
+stdY2 = std(O.Y{2},[],2);
+w0_us = ut.unstackW(w0,O.M,O.C,O.V);
+w0_ = ut.stackW({diag(pi/sqrt(3)./stdY1)*w0_us{1},diag(pi/sqrt(3)./stdY2)*w0_us{2}});
+
+O.objective(w0_);
 
 end
