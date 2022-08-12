@@ -92,9 +92,10 @@ gica1.objective(ut.stackW({diag(pi/sqrt(3) ./ std_gica1_W1)*gica1.W{1}})); % upd
 
 % Combine MISA GICA with whitening matrices to initialize multimodal model
 % W = cellfun(@(w) w,whtM,'Un',0);
-% TODO try ICA+PCA weight and compare with PCA weight
+W = cellfun(@(w,y) cat(1,w,y),whtM_shared,whtM_unique,'Un',0);
+% ICA+PCA weight
 % W = cellfun(@(w) gica1.W{1}*w,whtM,'Un',0);
-W = cellfun(@(w,y) cat(1, gica1.W{1}*w, y), whtM_shared, whtM_unique, 'un', 0);
+% W = cellfun(@(w,y) cat(1, gica1.W{1}*w, y), whtM_shared, whtM_unique, 'un', 0);
 W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
 %% Define the starting point (for this problem an orthogonal unmixing matrix, since the features A are orthogonal).
@@ -219,6 +220,7 @@ figure,imagesc(corr(data2.Y{2}',data2.Y{2}'),max(max(abs(corr(data2.Y{2}',data2.
 % figure,imagesc(corr(final_Y{2}',data2.Y{2}'),max(max(abs(corr(final_Y{2}',data2.Y{2}')))).*[-1 1]);colorbar();
 
 %%
-save '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/neuroimaging/without_scaling_dualpca_ica_init/aux.mat' 'aux'
-save '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/neuroimaging/without_scaling_dualpca_ica_init/data1.mat' 'data1'
-save '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/neuroimaging/without_scaling_dualpca_ica_init/data2.mat' 'data2'
+% save '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/neuroimaging/without_scaling_dualpca_init/aux.mat' 'aux'
+% save '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/neuroimaging/without_scaling_dualpca_init/data1.mat' 'data1'
+% save '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/neuroimaging/without_scaling_dualpca_init/data2.mat' 'data2'
+% save '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/neuroimaging/without_scaling_dualpca_init/W.mat' 'W'
