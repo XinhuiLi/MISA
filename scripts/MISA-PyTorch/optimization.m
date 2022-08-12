@@ -30,6 +30,8 @@ for seed = seed_list
                 load(fullfile(outpath,fn));
 
                 [isi, aux] = run_optimization(X,wpca,S,M,A);
+                fn = sprintf('out-siva_dataset%d_source%d_sample%d_seed%d.mat',n_dataset,n_source,n_sample,seed);
+                save(fullfile(outpath,fn),'isi','aux');
 
                 count=count+1;
             end

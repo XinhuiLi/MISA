@@ -1,8 +1,6 @@
 function [isi, aux] = run_optimization(X,W,S,M,A)
 
 ut=utils;
-n_iter = 5; % Number of combinatorial optimization
-isi = zeros(1, n_iter+1);
 K = size(S{M(1)},1);   % Number of subspaces
 
 % Set Kotz parameters to multivariate laplace
@@ -41,17 +39,6 @@ optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
 % Prep and run combinatorial optimization
 aux = {data1.W; data1.objective(ut.stackW(data1.W))};
 data1.MISI(A)
-isi(1) = data1.MISI(A);
-
-for ct = 2:n_iter
-        data1.combinatorial_optim()
-        optprob = ut.getop(ut.stackW(data1.W), f, c, barr, {'lbfgs' m}, Tol);
-        [wout,fval,exitflag,output] = fmincon(optprob);
-        aux(:,ct) = {data1.W; data1.objective_()};
-        data1.MISI(A)
-        isi(ct) = data1.MISI(A);
-end
-[~, ix] = min([aux{2,:}]);
-data1.objective(ut.stackW(aux{1,ix}));
+isi = data1.MISI(A);
 
 end
