@@ -6,7 +6,7 @@ addpath("/Users/xli77/Documents/MISA/scripts");
 addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 addpath(genpath('/Users/xli77/Documents/gift/GroupICATv4.0c'));
 
-outpath = '/Users/xli77/Documents/MISA/MISA-data/torch';
+outpath = '/Users/xli77/Documents/MISA/MISA-data/torch_pca_sourcexdataset';
 seed_list = [7, 14, 21];
 sample_list = [64, 256, 1024, 4096, 16384, 32768];
 dataset_list = [2, 12, 32, 100];
@@ -30,7 +30,6 @@ for seed = seed_list
                 sim_siva = struct(sim_siva);
                 fn = sprintf('sim-siva_dataset%d_source%d_sample%d_seed%d.mat',n_dataset,n_source,n_sample,seed);
                 save(fullfile(outpath,fn),'sim_siva','S','M','A','Y','X','wpca','w0','w1');
-                
                 count=count+1;
             end
         end

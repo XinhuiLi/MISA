@@ -3,19 +3,34 @@ function [whtM, H] = doMMGPCA(X, comps, rec_type)
 M = 1:length(X);
 N = size(X{1},2);
 
-V = cellfun(@(x) size(x,1), X);
+V = cellfun(@(x) size(x,1), X, 'Un', 0);
 
-outs = cell(size(X));
+if N <= min([V{:}])
+    % Xm.T * Xm, weighted avg per modality --> cov(X)
+    % Equivalent to X_cat.T*X_cat, with some scaling --> cov(X_cat)
+    % U,S,H = SVD(X_cat), H,S2 = EIG(X_cat.T*X_cat)
+    % Then S2 = S.^2
+    
+    cvx = zeros(N);
+    
+    for mm = M
+        cvx_ = cov(X{mm});
+        cvx = cvx + cvx_./(length(M)*trace(cvx_)/N);
+    end
+    
+    % Subject-level PCA reduction...
+    [H,lambda] = eigs(cvx,comps);
 
-cvx = zeros(N);
+else
+    % U,S,H = SVD(X_cat), U,S2 = EIG(X_cat*X_cat.T)
+    % scale data and concatenate
+    X_cat = cell2mat(cellfun(@(x) sqrt(N/(length(M)*sum(x(:).^2))) * x, X', 'Un', 0));
+    cvx = X_cat*X_cat';
 
-for mm = M
-    cvx_ = cov(X{mm});
-    cvx = cvx + cvx_./(length(M)*trace(cvx_)/N);
+    [U,lambda] = eigs(cvx,comps);
+    H = ((diag(1./sqrt(diag(lambda))) * U') * X_cat)';
 end
 
-% Subject-level PCA reduction...
-[H,lambda] = eigs(cvx,comps);
 
 A = cellfun(@(x) sqrt(N./(length(M)*sum(x(:).^2)))*(x*H), X, 'Un', 0);
 norm_A = cellfun(@(a) sum(a.^2), A, 'Un', 0)';
