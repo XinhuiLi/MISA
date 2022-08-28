@@ -8,6 +8,8 @@ addpath("/Users/xli77/Documents/MISA/scripts");
 addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 addpath(genpath('/Users/xli77/Documents/gift/GroupICATv4.0c'));
 
+global W;
+
 % generate data
 % simple K works with one or two subspaces
 seed=7;
@@ -41,19 +43,24 @@ SNR=(1+999)/1;
 %       [     ], [   11]; ...
 %       [     ], [   12]};
 
-% S_ = {[1 2 3], [1 2 3]; ...
-%       [4 5 6], [4 5 6]; ...
-%       [7 8 9], [7 8 9];};
+S_ = {[1 2 3], [1 2 3]; ...
+      [4 5 6], [4 5 6]; ...
+      [7 8 9], [7 8 9]};
+num_shared_pc = 9;
+num_unique_pc = 0;
 
-S_ = {[1 2], [1 2]; ...
-      [3 4], [3 4]; ...
-      [  5], [   ]; ...
-      [  6], [   ]; ...
-      [   ], [  5]; ...
-      [   ], [  6]};
+% S_ = {[1 2], [1 2]; ...
+%       [3 4], [3 4]; ...
+%       [  5], [   ]; ...
+%       [  6], [   ]; ...
+%       [   ], [  5]; ...
+%       [   ], [  6]};
+% num_shared_pc = 4;
+% num_unique_pc = 2;
 
 V = [20000,20000];
 
+global sim_misa;
 sim_misa = sim_MISA(seed,S_,V,N,Acond,SNR);
 S = sim_misa.S;
 M = sim_misa.M;
@@ -62,25 +69,28 @@ Y = sim_misa.Y;
 X = sim_misa.genX();
 
 ut = utils;
-num_shared_pc = 4;
-num_unique_pc = 2;
+
 [whtM_shared, H_shared] = ut.doMMGPCA(X, num_shared_pc, 'WT');
 
-X_res = cell(1,M_Tot);
-whtM_unique = cell(1,M_Tot);
-H_unique = cell(1,M_Tot);
-
-for mm = M
-    X_red = (whtM_shared{mm}*X{mm})';
-    % compute residue
-    X_res{mm} = X{mm} - X{mm}*(X_red/(X_red'*X_red))*X_red';
-    % run PCA on residue
-    [whtM_tmp, H_tmp] = ut.doMMGPCA(X_res(mm), num_unique_pc, 'WT');
-    whtM_unique{mm} = whtM_tmp{1};
-    H_unique{mm} = H_tmp;
+if num_unique_pc ~= 0
+    X_res = cell(1,M_Tot);
+    whtM_unique = cell(1,M_Tot);
+    H_unique = cell(1,M_Tot);
+    
+    for mm = M
+        X_red = (whtM_shared{mm}*X{mm})';
+        % compute residue
+        X_res{mm} = X{mm} - X{mm}*(X_red/(X_red'*X_red))*X_red';
+        % run PCA on residue
+        [whtM_tmp, H_tmp] = ut.doMMGPCA(X_res(mm), num_unique_pc, 'WT');
+        whtM_unique{mm} = whtM_tmp{1};
+        H_unique{mm} = H_tmp;
+    end
+    
+    whtM = cellfun(@(x,y) cat(1, x, y), whtM_shared, whtM_unique, 'un', 0); 
+else
+    whtM = whtM_shared;
 end
-
-whtM = cellfun(@(x,y) cat(1, x, y), whtM_shared, whtM_unique, 'un', 0); 
 
 % Set Kotz parameters to multivariate laplace
 K = size(S{1},1);
@@ -120,9 +130,12 @@ gica1.objective(ut.stackW({diag(pi/sqrt(3) ./ std_gica1_W1)*gica1.W{1}})); % upd
 
 % Combine MISA GICA with whitening matrices to initialize multimodal model
 % W = cellfun(@(w) w,whtM,'Un',0);
-% TODO try ICA+PCA weight and compare with PCA weight
 % W = cellfun(@(w) gica1.W{1}*w,whtM,'Un',0);
-W = cellfun(@(w,y) cat(1, gica1.W{1}*w, y), whtM_shared, whtM_unique, 'un', 0);
+if num_unique_pc ~= 0
+    W = cellfun(@(w,y) cat(1, gica1.W{1}*w, y), whtM_shared, whtM_unique, 'un', 0);
+else
+    W = cellfun(@(w) gica1.W{1}*w, whtM, 'un', 0);
+end
 W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
 %% Initialize MISA object
@@ -131,8 +144,20 @@ rng(100) % set the seed for reproducibility
 
 w0_new = ut.stackW(W(M));
 
-data1 = MISAK(w0_new, M, S, X, ...
-                0.5*beta, eta, [], ...
+S_iva = cellfun(@(s) sparse(eye(num_shared_pc+num_unique_pc)), S, 'un', 0);
+
+% Set Kotz parameters to multivariate laplace
+K_iva = size(S_iva{1},1);
+eta_iva = ones(K_iva,1);
+beta_iva = ones(K_iva,1);
+lambda_iva = ones(K_iva,1);
+
+% data1 = MISAK(w0_new, M, S, X, ...
+%                 0.5*beta, eta, [], ...
+%                 gradtype, sc, preX);
+
+data1 = MISAK(w0_new, M, S_iva, X, ...
+                0.5*beta_iva, eta_iva, [], ...
                 gradtype, sc, preX);
 
 for mm = M
@@ -144,7 +169,7 @@ w0_short = ut.stackW(W0);
 % 2: data2.Y = data2.W * data1.Y
 % By 1 and 2: data2.Y = data2.W * data1.W * X
 data2 = MISAK(w0_short, data1.M, data1.S, data1.Y, ...
-                0.5*beta, eta, [], ...
+                0.5*data1.beta, data1.eta, [], ...
                 gradtype, sc, preX);
 
 %% Debug only
@@ -205,7 +230,17 @@ for mm = M
     final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, W is 12x20k
 end
 data1.objective(ut.stackW(final_W))
+% IVA
+% pass S one per time, change data1.M to 1 or 2
+data1.update(S,data1.M,beta,[],eta); % Update S
+% ICA
+% M = 1
 isi(1) = data1.MISI(A)
+
+% 
+data2.update(data1.S,data1.M,data1.beta,[],data1.eta); % Update S
+
+
 
 for ct = 2:n_iter+1
         data2.combinatorial_optim()

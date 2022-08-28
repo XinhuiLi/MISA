@@ -9,11 +9,11 @@ SNR=(1+999)/1;
 
 sim_siva = sim_basic_SIVA(seed,K,V,M_Tot,N,Acond,SNR);
 
-S = sim_siva.S; % save
-M = sim_siva.M; % save
-A = sim_siva.A; % save
-Y = sim_siva.Y; % save
-X = sim_siva.genX(); % save
+S = sim_siva.S;
+M = sim_siva.M;
+A = sim_siva.A;
+Y = sim_siva.Y;
+X = sim_siva.genX();
 
 ut = utils;
 n_pc = sim_siva.C(1); % same as number of sources
@@ -50,20 +50,16 @@ gica1.objective(ut.stackW({diag(pi/sqrt(3) ./ std_gica1_W1)*gica1.W{1}})); % upd
 % Combine MISA GICA with whitening matrices to initialize multimodal model
 % W = cellfun(@(w) w,whtM,'Un',0);
 W = cellfun(@(w) gica1.W{1}*w,whtM,'Un',0);
-W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0); % save
-wpca = ut.stackW(W(M));
+wpca = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
-W0 = cell(size(A));
-W1 = cell(size(A));
+w0 = cell(size(A));
+w1 = cell(size(A));
 for mm = M
     n_component = size(S{mm},2);
     [u, s, v] = svd(randn(size(A{mm}(:,1:n_component)')),'econ');
     [u1, s1, v1] = svd(randn(size(A{mm}(:,1:n_component)')),'econ');
-    W0{mm} = u*v';
-    W1{mm} = u1*v1';
+    w0{mm} = u*v';
+    w1{mm} = u1*v1';
 end
-
-w0 = ut.stackW(W0(M));
-w1 = ut.stackW(W1(M));
 
 end

@@ -1,6 +1,7 @@
 function [isi, aux] = run_optimization(X,W,S,M,A)
 
 ut=utils;
+
 K = size(S{M(1)},1);   % Number of subspaces
 
 % Set Kotz parameters to multivariate laplace
@@ -17,7 +18,9 @@ sc = 1;
 % Turn off preprocessing (still removes the mean of the data)
 preX = false;
 
-data1 = MISAK(W, M, S, X, ...
+w = ut.stackW(W(M));
+
+data1 = MISAK(w, M, S, X, ...
                 0.5*beta, eta, [], ...
                 gradtype, sc, preX);
 

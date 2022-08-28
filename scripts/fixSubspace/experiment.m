@@ -10,7 +10,7 @@ addpath("/Users/xli77/Documents/MISA/scripts");
 addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 addpath(genpath('/Users/xli77/Documents/gift/GroupICATv4.0c'));
 
-n_iter = 20; % Number of combinatorial optimization
+n_iter = 5; % Number of combinatorial optimization
 
 % generate data
 % simple K works with one or two subspaces
@@ -18,22 +18,27 @@ seed=7;
 Acond=3; % 1 means orthogonal matrix
 SNR=(1+999)/1;
 
+% S_ = {[1 2 3], [1 2 3]; ...
+%       [4 5 6], [4 5 6]; ...
+%       [7 8 9], [7 8 9]; ...
+%       [   10], [     ]; ...
+%       [   11], [     ]; ...
+%       [   12], [     ]; ...
+%       [     ], [   10]; ...
+%       [     ], [   11]; ...
+%       [     ], [   12]};
+% num_pc = 12; %sum([S_{:,1}] ~= 0);
+
 S_ = {[1 2 3], [1 2 3]; ...
       [4 5 6], [4 5 6]; ...
-      [7 8 9], [7 8 9]; ...
-      [   10], [     ]; ...
-      [   11], [     ]; ...
-      [   12], [     ]; ...
-      [     ], [   10]; ...
-      [     ], [   11]; ...
-      [     ], [   12]};
+      [7 8 9], [7 8 9]};
+num_pc = 9;
 
 M = [1, 2];
 
 X = load('/Users/xli77/Documents/MISA/MISA-data/sMRI-fMRI/X.mat').X;
 
 ut = utils;
-num_pc = 12; %sum([S_{:,1}] ~= 0);
 [whtM, H] = ut.doMMGPCA(X, num_pc, 'WT');
 
 % Set Kotz parameters to multivariate laplace
@@ -163,6 +168,7 @@ for ct = 1:n_iter
 end
 [~, ix] = min([aux{2,:}]);
 
+%%
 final_W = cell(1,2);
 for mm = M
     final_W{mm} = aux{1,ix}{mm} * W{mm};
@@ -177,8 +183,8 @@ for mm = M
 end
 
 %%
-figure,imagesc(corr(final_Y{1}',data2.Y{1}'),max(max(abs(corr(final_Y{1}',data2.Y{1}')))).*[-1 1]);colorbar();
-figure,imagesc(corr(final_Y{2}',data2.Y{2}'),max(max(abs(corr(final_Y{2}',data2.Y{2}')))).*[-1 1]);colorbar();
+% figure,imagesc(corr(final_Y{1}',data2.Y{1}'),max(max(abs(corr(final_Y{1}',data2.Y{1}')))).*[-1 1]);colorbar();
+% figure,imagesc(corr(final_Y{2}',data2.Y{2}'),max(max(abs(corr(final_Y{2}',data2.Y{2}')))).*[-1 1]);colorbar();
 
 %% Check results
 % fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
@@ -187,7 +193,7 @@ figure,imagesc(corr(final_Y{2}',data2.Y{2}'),max(max(abs(corr(final_Y{2}',data2.
 %% Visualize recovered (mixing) patterns
 % view_results
 % figure,plot(1:n_iter,[aux{2,:}],'o-');
-% figure,imagesc(corr(data2.Y{1}',data2.Y{2}'),max(max(abs(corr(data2.Y{1}',data2.Y{2}')))).*[-1 1]);colorbar();
+figure,imagesc(corr(data2.Y{1}',data2.Y{2}'),max(max(abs(corr(data2.Y{1}',data2.Y{2}')))).*[-1 1]);colorbar();
 % figure,imagesc(corr(data2.Y{1}',data2.Y{1}'),max(max(abs(corr(data2.Y{1}',data2.Y{1}')))).*[-1 1]);colorbar();
 % figure,imagesc(corr(data2.Y{2}',data2.Y{2}'),max(max(abs(corr(data2.Y{2}',data2.Y{2}')))).*[-1 1]);colorbar();
 
@@ -196,10 +202,6 @@ figure,imagesc(corr(final_Y{2}',data2.Y{2}'),max(max(abs(corr(final_Y{2}',data2.
 % figure,imagesc(corr(data1.Y{2}',data1.Y{2}'),max(max(abs(corr(data1.Y{2}',data1.Y{2}')))).*[-1 1]);colorbar();
 
 % figure,imagesc(corr(data2.X{1}',data2.X{1}'),max(max(abs(corr(data2.X{1}',data2.X{1}')))).*[-1 1]);colorbar();
-
-% data1.objective(ut.stackW(W));
-% s = svds(data1.Y{1},12);
-% sd = diag(s)';
 
 %%
 % save '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/neuroimaging/without_scaling/aux.mat' 'aux'

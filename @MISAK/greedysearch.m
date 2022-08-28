@@ -44,6 +44,8 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
 %         O.updateRElambda(O.opt_RE(w0));
         optprob = O.ut.getop(w0, @(x) O.objective(x), [], 1, {'lbfgs' 10}, 1e-9); % For sim results, remove barrier, lbfgs and tol params
         optprob.options.MaxIter = 1000; % For sim results, comment this
+%         optprob.options.Display = 'iter-detailed';
+%         optprob.options.PlotFcns = {@optimplotconstrviolation @optimplotstepsize @optimplotfirstorderopt @optimplotfval};
         [woutT,fvalT,exitflagT,outputT] = fmincon(optprob);
         %W = O.ut.unstackW(woutT,O.M,O.C,O.V);
         %WoutT{mm} = W{mm};
@@ -86,9 +88,10 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
             O.update(S_,mm,[b'; b(end)],[l'; l(end)],[e'; e(end)]); % Update S and set M = mm
             misa_values(ss+1) = O.objective(w0);
             
-%             global sim_siva;
-%             figure,imagesc(O.W{mm}*sim_siva.A{mm},max(max(abs(O.W{mm}*sim_siva.A{mm}))).*[-1 1]);colorbar();
-%             figure,imagesc(O.W{end}*sim_siva.A{end},max(max(abs(O.W{end}*sim_siva.A{end}))).*[-1 1]);colorbar();
+%             global sim_misa;
+%             global W;
+%             figure,imagesc(O.W{mm}*W{mm}*sim_misa.A{mm},max(max(abs(O.W{mm}*W{mm}*sim_misa.A{mm}))).*[-1 1]);colorbar();
+%             figure,imagesc(O.W{end}*W{end}*sim_misa.A{end},max(max(abs(O.W{end}*W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
 
             [~,ix] = min(misa_values);                % best subspace for component cc
 %             imagesc(full(S_{mm}))
@@ -98,11 +101,15 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
                 ix = ss+1;                           % Preference for smaller subspaces
             end
 %             ix, size(S_{mm},1)
-            if ix ~= current && abs(diff(misa_values([ix current]))) < sqrt(eps)
+            condition = (ix ~= current) & abs(misa_values(ix) - misa_values(current)) < sqrt(eps);
+            if all(condition)
                 % Ignore values that are smallet than current if diff is
                 % too small
                 ix = current;
+            else
+                [~,ix]=min(condition);
             end
+
             if ix < (ss+1)
                 % Remove added subspace
                 S_{mm}(ix,kk) = 1;

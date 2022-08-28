@@ -6,7 +6,7 @@ addpath("/Users/xli77/Documents/MISA/scripts");
 addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 addpath(genpath('/Users/xli77/Documents/gift/GroupICATv4.0c'));
 
-outpath = '/Users/xli77/Documents/MISA/MISA-data/torch_pca_sourcexdataset';
+outpath = '/Users/xli77/Documents/MISA/MISA-data/torch';
 seed_list = [7, 14, 21];
 sample_list = [64, 256, 1024, 4096, 16384, 32768];
 dataset_list = [2, 12, 32, 100];
