@@ -99,6 +99,7 @@ classdef MISAK < handle
         combinatorial_optim(O,myM)      % Solve combinatorial optimization
         w0 = greedysearch(O,myM)
         [w0, shuff] = sub_perm_analysis(O, w0)
+        [shuff] = greedy_sub_perm_analysis(O)
         mISI = MISI(O,A)                % Compute joint ISI of current W. A is provided.
         mmd = MMD(O,A)
         mmse = MMSE(O,Y)

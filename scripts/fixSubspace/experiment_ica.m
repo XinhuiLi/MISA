@@ -208,8 +208,8 @@ end
 % view_results
 % figure,plot(1:n_iter,[aux{2,:}],'o-');
 figure,imagesc(corr(data2.Y{1}',data2.Y{2}'),max(max(abs(corr(data2.Y{1}',data2.Y{2}')))).*[-1 1]);colorbar();
-% figure,imagesc(corr(data2.Y{1}',data2.Y{1}'),max(max(abs(corr(data2.Y{1}',data2.Y{1}')))).*[-1 1]);colorbar();
-% figure,imagesc(corr(data2.Y{2}',data2.Y{2}'),max(max(abs(corr(data2.Y{2}',data2.Y{2}')))).*[-1 1]);colorbar();
+figure,imagesc(corr(data2.Y{1}',data2.Y{1}'),max(max(abs(corr(data2.Y{1}',data2.Y{1}')))).*[-1 1]);colorbar();
+figure,imagesc(corr(data2.Y{2}',data2.Y{2}'),max(max(abs(corr(data2.Y{2}',data2.Y{2}')))).*[-1 1]);colorbar();
 
 % figure,imagesc(corr(data1.Y{1}',data1.Y{2}'),max(max(abs(corr(data1.Y{1}',data1.Y{2}')))).*[-1 1]);colorbar();
 % figure,imagesc(corr(data1.Y{1}',data1.Y{1}'),max(max(abs(corr(data1.Y{1}',data1.Y{1}')))).*[-1 1]);colorbar();

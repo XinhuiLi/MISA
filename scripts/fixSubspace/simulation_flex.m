@@ -11,25 +11,13 @@ addpath(genpath('/Users/xli77/Documents/gift/GroupICATv4.0c'));
 % generate data
 % simple K works with one or two subspaces
 seed=7;
-% K=[1 1 1 1 1 1 1 1 1 1 1 1]; %[2,2,1,1,1];
-% num_subspace=length(K);
+% num_subspace=30;
+% K=ones(1,num_subspace);
 % V=sum(K);
-% V = [20000,20000];
 M_Tot=2;
 N=3000;
 Acond=3; % 1 means orthogonal matrix
 SNR=(1+999)/1;
-
-% global sim_siva;
-% sim_siva = sim_basic_SIVA(seed,K,V,M_Tot,N,Acond,SNR);
-% S = sim_siva.S;
-% M = sim_siva.M;
-% A = sim_siva.A;
-% Y = sim_siva.Y;
-% X = sim_siva.genX();
-
-% change subspace structure
-% run ICA only
 
 S_ = {[1 2 3], [1 2 3]; ...
       [4 5 6], [4 5 6]; ...
@@ -40,21 +28,6 @@ S_ = {[1 2 3], [1 2 3]; ...
       [     ], [   10]; ...
       [     ], [   11]; ...
       [     ], [   12]};
-num_shared_pc = 9;
-num_unique_pc = 3;
-
-% S_ = {[1 2 3], [1 2 3]; ...
-%       [4 5 6], [4 5 6]; ...
-%       [7 8 9], [7 8 9];};
-
-% S_ = {[1 2], [1 2]; ...
-%       [3 4], [3 4]; ...
-%       [  5], [   ]; ...
-%       [  6], [   ]; ...
-%       [   ], [  5]; ...
-%       [   ], [  6]};
-% num_shared_pc = 4;
-% num_unique_pc = 2;
 
 V = [20000,20000];
 
@@ -66,27 +39,12 @@ Y = sim_misa.Y;
 X = sim_misa.genX();
 
 ut = utils;
-
-[whtM_shared, H_shared] = ut.doMMGPCA(X, num_shared_pc, 'WT');
-
-X_res = cell(1,M_Tot);
-whtM_unique = cell(1,M_Tot);
-H_unique = cell(1,M_Tot);
-
-for mm = M
-    X_red = (whtM_shared{mm}*X{mm})';
-    % compute residue
-    X_res{mm} = X{mm} - X{mm}*(X_red/(X_red'*X_red))*X_red';
-    % run PCA on residue
-    [whtM_tmp, H_tmp] = ut.doMMGPCA(X_res(mm), num_unique_pc, 'WT');
-    whtM_unique{mm} = whtM_tmp{1};
-    H_unique{mm} = H_tmp;
-end
-
-whtM = cellfun(@(x,y) cat(1, x, y), whtM_shared, whtM_unique, 'un', 0); 
+num_pc = 12; %sum([S_{:,1}] ~= 0);
+[whtM, H] = ut.doMMGPCA(X, num_pc, 'WT');
 
 % Set Kotz parameters to multivariate laplace
 K = size(S{1},1);
+
 eta = ones(K,1);
 beta = ones(K,1);
 lambda = ones(K,1);
@@ -102,16 +60,16 @@ sc = 1;
 % Turn off preprocessing (still removes the mean of the data)
 preX = false;
 
-w0 = ut.stackW({diag(pi/sqrt(3)./std(H_shared,[],2))*eye(size(H_shared,1))});
+w0 = ut.stackW({diag(pi/sqrt(3)./std(H,[],2))*eye(size(H,1))});
 
-gica1 = MISAK(w0, 1, {eye(size(H_shared,1))}, {H_shared}, ...
-                0.5*ones(num_shared_pc,1), ones(num_shared_pc,1), ones(num_shared_pc,1), ...
+gica1 = MISAK(w0, 1, {eye(size(H,1))}, {H}, ...
+                0.5*ones(num_pc,1), ones(num_pc,1), ones(num_pc,1), ...
                 gradtype, sc, preX);
 
 % the whitening matrix is an identity matrix, different from the whitening matrix from PCA
 % sphering turns off PCA
-[W1,wht] = icatb_runica(H_shared,'weights',gica1.W{1},'ncomps',size(H_shared,1),'sphering', 'off', 'verbose', 'off', 'posact', 'off', 'bias', 'on');
-std_W1 = std(W1*H_shared,[],2); % Ignoring wht because Infomax run with 'sphering' 'off' --> wht = eye(comps)
+[W1,wht] = icatb_runica(H,'weights',gica1.W{1},'ncomps',size(H,1),'sphering', 'off', 'verbose', 'off', 'posact', 'off', 'bias', 'on');
+std_W1 = std(W1*H,[],2); % Ignoring wht because Infomax run with 'sphering' 'off' --> wht = eye(comps)
 W1 = diag(pi/sqrt(3) ./ std_W1) * W1; 
 
 % RUN GICA using MISA: continuing from Infomax above...
@@ -122,10 +80,9 @@ std_gica1_W1 = std(gica1.Y{1},[],2);
 gica1.objective(ut.stackW({diag(pi/sqrt(3) ./ std_gica1_W1)*gica1.W{1}})); % update gica1.W{1}
 
 % Combine MISA GICA with whitening matrices to initialize multimodal model
-% W = cellfun(@(w) w,whtM,'Un',0);
+W = cellfun(@(w) w,whtM,'Un',0);
 % TODO try ICA+PCA weight and compare with PCA weight
 % W = cellfun(@(w) gica1.W{1}*w,whtM,'Un',0);
-W = cellfun(@(w,y) cat(1, gica1.W{1}*w, y), whtM_shared, whtM_unique, 'un', 0);
 W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
 %% Initialize MISA object
@@ -139,7 +96,7 @@ data1 = MISAK(w0_new, M, S, X, ...
                 gradtype, sc, preX);
 
 for mm = M
-    W0{mm} = [eye(num_shared_pc+num_unique_pc)];
+    W0{mm} = [eye(num_pc),zeros(num_pc,size(Y{M(1)},1)-num_pc)];
 end
 w0_short = ut.stackW(W0);
 
@@ -193,7 +150,7 @@ barr = 1; % Barrier parameter
 m = 1; % Number of past gradients to use for LBFGS-B (m = 1 is equivalent to conjugate gradient)
 N = size(X(M(1)),2); % Number of observations
 Tol = .5*N*1e-9; % Tolerance for stopping criteria
-n_iter = 5; % Number of combinatorial optimization
+n_iter = 3; % Number of combinatorial optimization
 isi = zeros(1, n_iter+1);
 
 % Set optimization parameters and run
@@ -240,9 +197,5 @@ fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
 % figure,imagesc((data2.W{1}*data1.W{1})*sim_misa.A{1},max(max(abs((data2.W{1}*data1.W{1})*sim_misa.A{1}))).*[-1 1]);colorbar();
 % figure,imagesc((data2.W{end}*data1.W{end})*sim_misa.A{end},max(max(abs((data2.W{end}*data1.W{end})*sim_misa.A{end}))).*[-1 1]);colorbar();
 
-% figure,imagesc(data1.W{1}*sim_misa.A{1},max(max(abs(data1.W{1}*sim_misa.A{1}))).*[-1 1]);colorbar();
-% figure,imagesc(data1.W{end}*sim_misa.A{end},max(max(abs(data1.W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
-
-figure,imagesc(corr(data2.Y{1}',data2.Y{2}'),max(max(abs(corr(data2.Y{1}',data2.Y{2}')))).*[-1 1]);colorbar();
-figure,imagesc(corr(data2.Y{1}',data2.Y{1}'),max(max(abs(corr(data2.Y{1}',data2.Y{1}')))).*[-1 1]);colorbar();
-figure,imagesc(corr(data2.Y{2}',data2.Y{2}'),max(max(abs(corr(data2.Y{2}',data2.Y{2}')))).*[-1 1]);colorbar();
+figure,imagesc(data1.W{1}*sim_misa.A{1},max(max(abs(data1.W{1}*sim_misa.A{1}))).*[-1 1]);colorbar();
+figure,imagesc(data1.W{end}*sim_misa.A{end},max(max(abs(data1.W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
