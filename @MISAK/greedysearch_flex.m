@@ -1,7 +1,7 @@
 function w0 = greedysearch_flex(O,varargin)
 
 if ~isempty(varargin)
-    sim1 = varargin{1};
+    O_struct = varargin{1};
 end
 
 if length(O.M) ~= 1 || ... % More than 1 dataset
@@ -60,6 +60,7 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
         b = old_beta(1);
         e = old_eta(1);
         O.update(S_,mm,b,[],e);
+        figure,imagesc(abs(corr([O.Y{1}', O.Y{2}'])), [0,1]); colorbar();
 %         b = []; l = []; e = [];
 %         for kk = 1:length(ixe)
 %             b(ixb(kk):ixe(kk)) = old_beta(1);
@@ -67,13 +68,12 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
 %             e(ixb(kk):ixe(kk)) = old_eta(1);
 %         end
 %         O.update(S_,mm,b',l',e');
-
         
         % Component permutation analysis (per dataset):
         % The following is a GREEDY SEARCH on the space component
         % assignements to subspaces
-%         figure
-        for cc = randperm(size(S{mm}, 2))%1:size(S_{mm}, 2)%
+        
+        for cc = randperm(size(S{mm}, 2))%1:size(S_{mm}, 2)
             current = find(S_{mm}(:,cc));             % current subspace for component cc
             kk = find(S_{mm}(current,:));
             S_{mm}(:,kk) = zeros(size(S_{mm},1),length(kk));   % empty column cc
@@ -96,22 +96,26 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
 %             global W;
 %             figure,imagesc(O.W{mm}*W{mm}*sim_misa.A{mm},max(max(abs(O.W{mm}*W{mm}*sim_misa.A{mm}))).*[-1 1]);colorbar();
 %             figure,imagesc(O.W{end}*W{end}*sim_misa.A{end},max(max(abs(O.W{end}*W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
-
+            
+            % *** There is a bug here ***
             [~,ix] = min(misa_values);                % best subspace for component cc
-%             imagesc(full(S_{mm}))
+            figure, 
+            imagesc(full(S_{mm}))
             drawnow()
             ix = find(misa_values == misa_values(ix));
             if sum(ix == (ss+1)) > 0
                 ix = ss+1;                           % Preference for smaller subspaces
             end
 %             ix, size(S_{mm},1)
+            
             condition = (ix ~= current) & abs(misa_values(ix) - misa_values(current)) < sqrt(eps);
             if all(condition)
                 % Ignore values that are smallet than current if diff is
                 % too small
                 ix = current;
             else
-                [~,ix]=min(condition);
+                [~,tmp]=min(condition);
+                ix = ix(tmp);
             end
 
             if ix < (ss+1)
@@ -131,6 +135,7 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
 %             l = O.lambda(this_nes);
             e = O.eta(this_nes);
             e = e(1);
+            O.update(S_,mm,b,[],e);
         end
 %         figure, imagesc(full(S{mm}),[0 1]), axis equal tight; title('DESIRED')
 %         figure, imagesc(full(S_{mm}),[0 1]), axis equal tight; title('BEFORE subspace match: ESTIMATED')

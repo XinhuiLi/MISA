@@ -1,5 +1,8 @@
 function [shuff] = greedy_sub_perm_analysis(O)
 
+figure,imagesc(O.S{1},max(max(abs(O.S{1}))).*[-1 1]);colorbar();
+figure,imagesc(O.S{end},max(max(abs(O.S{end}))).*[-1 1]);colorbar();
+
 S_ = O.S;
 col_ind = cell(1, O.K);
 for ss = 1:O.K % iterate through subspaces

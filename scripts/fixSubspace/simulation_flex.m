@@ -29,6 +29,16 @@ S_ = {[1 2 3], [1 2 3]; ...
       [     ], [   11]; ...
       [     ], [   12]};
 
+S2_ = {[1 2 3], [1 2 3]; ...
+      [], [4 5 6]; ...
+      [4 5 6 7 8 9], [7 8 9]; ...
+      [   10], [     ]; ...
+      [   11], [     ]; ...
+      [   12], [     ]; ...
+      [     ], [   10]; ...
+      [     ], [   11]; ...
+      [     ], [   12]};
+
 V = [20000,20000];
 
 sim_misa = sim_MISA(seed,S_,V,N,Acond,SNR);
@@ -91,7 +101,14 @@ rng(100) % set the seed for reproducibility
 
 w0_new = ut.stackW(W(M));
 
-data1 = MISAK(w0_new, M, S, X, ...
+% Difference between W and Wi 
+% Wi: Wiener estimator
+
+% data1 = MISAK(w0_new, M, S, X, ...
+%                 0.5*beta, eta, [], ...
+%                 gradtype, sc, preX);
+
+data1 = MISAK(ut.stackW(sim_misa.W(M)), M, S, X, ...
                 0.5*beta, eta, [], ...
                 gradtype, sc, preX);
 
@@ -106,6 +123,7 @@ w0_short = ut.stackW(W0);
 data2 = MISAK(w0_short, data1.M, data1.S, data1.Y, ...
                 0.5*beta, eta, [], ...
                 gradtype, sc, preX);
+
 
 %% Debug only
 if debug
@@ -150,32 +168,57 @@ barr = 1; % Barrier parameter
 m = 1; % Number of past gradients to use for LBFGS-B (m = 1 is equivalent to conjugate gradient)
 N = size(X(M(1)),2); % Number of observations
 Tol = .5*N*1e-9; % Tolerance for stopping criteria
-n_iter = 3; % Number of combinatorial optimization
+n_iter = 1; % Number of combinatorial optimization
 isi = zeros(1, n_iter+1);
 
 % Set optimization parameters and run
-optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
-[wout,fval,exitflag,output] = fmincon(optprob);
+% optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
+% [wout,fval,exitflag,output] = fmincon(optprob);
 
 % Prep and run combinatorial optimization
 aux = {data2.W; data2.objective(ut.stackW(data2.W))};
 
 final_W = cell(1,2);
 for mm = M
-    final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, W is 12x20k
+%     final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, W is 12x20k
+    final_W{mm} = data2.W{mm} * sim_misa.W{mm}; % data2.W is 12x12, W is 12x20k
 end
 data1.objective(ut.stackW(final_W))
 isi(1) = data1.MISI(A)
 
+S2 = cell(size(M));
+for mm = M
+    if issparse(S2_{mm})
+        S2{mm} = S2_{mm};
+    else
+        ii = [];
+        jj = [];
+        for ii_ = 1:K
+            jj_ = length(S2_{ii_,mm});
+            if jj_ ~= 0
+                jj = [jj S2_{ii_,mm}];
+                ii = [ii ii_*ones(1,jj_)];
+            end
+        end
+        S2{mm} = sparse(ii, jj, ones(1,sum([S2_{:,mm}] ~= 0)), ...
+            K, sum([S2_{:,mm}] ~= 0), sum([S2_{:,mm}] ~= 0));
+    end
+end
+
+data3 = MISAK(ut.stackW(data2.W(1)), 1, S2, data1.Y, ...
+                0.5*beta, eta, [], ...
+                gradtype, sc, preX);
+O_struct = struct(data3);
+
 for ct = 2:n_iter+1
-        data2.combinatorial_optim()
-        optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
-        [wout,fval,exitflag,output] = fmincon(optprob);
+        data2.combinatorial_optim(O_struct)
+%         optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
+%         [wout,fval,exitflag,output] = fmincon(optprob);
         aux(:,ct) = {data2.W; data2.objective_()};
         
         final_W = cell(1,2);
         for mm = M
-            final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
+            final_W{mm} = data2.W{mm} * sim_misa.W{mm}; % data2.W is 12x12, data1.W is 12x20k
         end
         data1.objective(ut.stackW(final_W))
         isi(ct) = data1.MISI(A)
@@ -184,7 +227,7 @@ end
 
 final_W = cell(1,2);
 for mm = M
-    final_W{mm} = aux{1,ix}{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
+    final_W{mm} = aux{1,ix}{mm} * sim_misa.W{mm}; % data2.W is 12x12, data1.W is 12x20k
 end
 data1.objective(ut.stackW(final_W));
 
@@ -199,3 +242,18 @@ fprintf("\nFinal MISI: %.4f\n\n", data1.MISI(A))
 
 figure,imagesc(data1.W{1}*sim_misa.A{1},max(max(abs(data1.W{1}*sim_misa.A{1}))).*[-1 1]);colorbar();
 figure,imagesc(data1.W{end}*sim_misa.A{end},max(max(abs(data1.W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
+
+% figure,imagesc(sim_misa.W{1}*sim_misa.A{1},max(max(abs(sim_misa.W{1}*sim_misa.A{1}))).*[-1 1]);colorbar();
+% figure,imagesc(sim_misa.W{end}*sim_misa.A{end},max(max(abs(sim_misa.W{end}*sim_misa.A{end}))).*[-1 1]);colorbar();
+
+% figure,imagesc(data2.W{1},max(max(abs(data2.W{1}))).*[-1 1]);colorbar();
+% figure,imagesc(data2.W{end},max(max(abs(data2.W{end}))).*[-1 1]);colorbar();
+% 
+% figure,imagesc(data1.W{1},max(max(abs(data1.W{1}))).*[-1 1]);colorbar();
+% figure,imagesc(data1.W{end},max(max(abs(data1.W{end}))).*[-1 1]);colorbar();
+
+figure,imagesc(data2.S{1},max(max(abs(data2.S{1}))).*[-1 1]);colorbar();
+figure,imagesc(data2.S{end},max(max(abs(data2.S{end}))).*[-1 1]);colorbar();
+
+figure,imagesc(sim_misa.S{1},max(max(abs(sim_misa.S{1}))).*[-1 1]);colorbar();
+figure,imagesc(sim_misa.S{end},max(max(abs(sim_misa.S{end}))).*[-1 1]);colorbar();

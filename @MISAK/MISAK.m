@@ -29,11 +29,15 @@ classdef MISAK < handle
         function obj = MISAK(w0, M, S, X, beta, eta, lambda, gradtype, sc, preX)
             
             %%% Test nu for all subspaces!!
-            if any(beta <= 0), error('All beta parameters should be positive.'); end
-            if any(lambda <= 0), error('All lambda parameters should be positive.'); end
-            if any(eta <= ((2-sum([S{M}],2))./2)), error('All eta parameters should be lagerer than (2-d)/2.'); end
-            nu = (2*eta + sum([S{M}],2) - 2)./(2*beta);
-            if any(nu <= 0), error('All nu parameter derived from eta and d should be positive.'); end
+            Sfull = full(sum([S{M}],2));
+            Smask = Sfull~=0;
+            if any(beta(Smask) <= 0), error('All beta parameters should be positive.'); end
+            if ~isempty(lambda)
+                if any(lambda(Smask) <= 0), error('All lambda parameters should be positive.'); end
+            end
+            if any(eta(Smask) <= ((2-Sfull(Smask))./2)), error('All eta parameters should be lagerer than (2-d)/2.'); end
+            nu = (2*eta + Sfull - 2)./(2*beta);
+            if any(nu(Smask) <= 0), error('All nu parameter derived from eta and d should be positive.'); end
             
             obj.M = M;                      % Indices of datasets to be used in the analysis
             obj.S = S;                      % Subspace assignment matrix (K x Cm)
