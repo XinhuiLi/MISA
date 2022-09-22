@@ -99,14 +99,14 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
             imagesc(full(S_{mm}))
             drawnow()
             ix = find(misa_values == misa_values(ix));
-            if sum(ix == (ss+1)) > 0
-                ix = ss+1;                           % Preference for smaller subspaces
-            end
-%             ix, size(S_{mm},1)
-            if ix ~= current && abs(diff(misa_values([ix current]))) < sqrt(eps)
-                % Ignore values that are smallet than current if diff is
+            condition = (ix ~= current) & abs(misa_values(ix) - misa_values(current)) < sqrt(eps);
+            if all(condition)
+                % Ignore values that are smaller than current if diff is
                 % too small
                 ix = current;
+            else
+                [~,tmp]=min(condition);
+                ix = ix(tmp);
             end
             if ix < (ss+1)
                 % Remove added subspace

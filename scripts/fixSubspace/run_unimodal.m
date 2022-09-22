@@ -1,4 +1,4 @@
-function [data1, isi, aux] = run_unimodal(X, Y, A, S, M, num_pc)
+function [data1, isi, aux] = run_unimodal(X, Y, A, S, M, num_pc, num_iter)
 % Unimodal: PCA+ICA+CO
 
 ut = utils;
@@ -14,7 +14,7 @@ preX = false;
 
 H_all = cell(1,2);
 whtM_all = cell(1,2);
-W_r = cell(1,2); % reduced W
+Wr = cell(1,2); % reduced W
 
 for mm = M
     [whtM, H] = ut.doMMGPCA(X(mm), num_pc, 'WT');
@@ -39,12 +39,12 @@ for mm = M
     [wout,fval,exitflag,output] = ut.run_MISA(gica1,{W1});
     std_gica1_W1 = std(gica1.Y{1},[],2);
     gica1.objective(ut.stackW({diag(pi/sqrt(3) ./ std_gica1_W1)*gica1.W{1}})); % update gica1.W{1}
-    W_r{mm} = gica1.W{1};
+    Wr{mm} = gica1.W{1};
 end
 
 % Combine MISA GICA with whitening matrices to initialize multimodal model
 W = cellfun(@(w) w,whtM_all,'Un',0);
-W = cellfun(@(w, wr) wr*w,W,W_r,'Un',0);
+W = cellfun(@(w, wr) wr*w,W,Wr,'Un',0);
 W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
 w0_new = ut.stackW(W(M));
@@ -82,8 +82,7 @@ barr = 1; % Barrier parameter
 m = 1; % Number of past gradients to use for LBFGS-B (m = 1 is equivalent to conjugate gradient)
 N = size(X(M(1)),2); % Number of observations
 Tol = .5*N*1e-9; % Tolerance for stopping criteria
-n_iter = 10; % Number of combinatorial optimization
-isi = zeros(1, n_iter+1);
+isi = zeros(1, num_iter+1);
 
 % Set optimization parameters and run
 optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
@@ -99,7 +98,7 @@ end
 data1.objective(ut.stackW(final_W))
 isi(1) = data1.MISI(A)
 
-for ct = 2:n_iter+1
+for ct = 2:num_iter+1
     data2.combinatorial_optim()
     optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
     [wout,fval,exitflag,output] = fmincon(optprob);

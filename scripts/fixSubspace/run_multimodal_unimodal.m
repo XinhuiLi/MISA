@@ -1,4 +1,4 @@
-function [data1, isi, aux] = run_multimodal_unimodel(X, Y, A, S, M, num_pc)
+function [data1, isi, aux] = run_multimodal_unimodel(X, Y, A, S, M, num_pc, num_iter)
 % Multimodal + unimodal: MGPCA + separate ICA + CO
 
 ut = utils;
@@ -18,21 +18,25 @@ sc = 1;
 % Turn off preprocessing (still removes the mean of the data)
 preX = false;
 
-W_r = cell(1,2); % reduced W
+%%
+
+Wr = cell(1,2); % reduced W
 
 [whtM, H] = ut.doMMGPCA(X, num_pc, 'WT');
 
-for mm = M
-    w0 = ut.stackW({diag(pi/sqrt(3)./std(H,[],2))*eye(size(H,1))});
+Xr = cellfun(@(x,w) w*x, X, whtM, 'Un', 0);
 
-    gica1 = MISAK(w0, 1, {eye(size(H,1))}, {H}, ...
+for mm = M
+    w0 = ut.stackW({diag(pi/sqrt(3)./std(Xr{mm},[],2))*eye(size(Xr{mm},1))});
+
+    gica1 = MISAK(w0, 1, {eye(size(Xr{mm},1))}, Xr(mm), ...
         0.5*ones(num_pc,1), ones(num_pc,1), ones(num_pc,1), ...
         gradtype, sc, preX);
 
     % the whitening matrix is an identity matrix, different from the whitening matrix from PCA
     % sphering turns off PCA
-    [W1,wht] = icatb_runica(H,'weights',gica1.W{1},'ncomps',size(H,1),'sphering', 'off', 'verbose', 'off', 'posact', 'off', 'bias', 'on');
-    std_W1 = std(W1*H,[],2); % Ignoring wht because Infomax run with 'sphering' 'off' --> wht = eye(comps)
+    [W1,wht] = icatb_runica(Xr{mm},'weights',gica1.W{1},'ncomps',size(Xr{mm},1),'sphering', 'off', 'verbose', 'off', 'posact', 'off', 'bias', 'on');
+    std_W1 = std(W1*Xr{mm},[],2); % Ignoring wht because Infomax run with 'sphering' 'off' --> wht = eye(comps)
     W1 = diag(pi/sqrt(3) ./ std_W1) * W1;
 
     % RUN GICA using MISA: continuing from Infomax above...
@@ -41,14 +45,15 @@ for mm = M
     [wout,fval,exitflag,output] = ut.run_MISA(gica1,{W1});
     std_gica1_W1 = std(gica1.Y{1},[],2);
     gica1.objective(ut.stackW({diag(pi/sqrt(3) ./ std_gica1_W1)*gica1.W{1}})); % update gica1.W{1}
-    W_r{mm} = gica1.W{1};
+    Wr{mm} = gica1.W{1};
 end
 
 % Combine MISA GICA with whitening matrices to initialize multimodal model
 W = cellfun(@(w) w,whtM,'Un',0);
-W = cellfun(@(w, wr) wr*w,W,W_r,'Un',0);
+W = cellfun(@(w, wr) wr*w,W,Wr,'Un',0);
 W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
+%%
 w0_new = ut.stackW(W(M));
 
 data1 = MISAK(w0_new, M, S, X, ...
@@ -78,8 +83,7 @@ barr = 1; % Barrier parameter
 m = 1; % Number of past gradients to use for LBFGS-B (m = 1 is equivalent to conjugate gradient)
 N = size(X(M(1)),2); % Number of observations
 Tol = .5*N*1e-9; % Tolerance for stopping criteria
-n_iter = 10; % Number of combinatorial optimization
-isi = zeros(1, n_iter+1);
+isi = zeros(1, num_iter+1);
 
 % Set optimization parameters and run
 optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
@@ -95,7 +99,7 @@ end
 data1.objective(ut.stackW(final_W))
 isi(1) = data1.MISI(A)
 
-for ct = 2:n_iter+1
+for ct = 2:num_iter+1
     data2.combinatorial_optim()
     optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
     [wout,fval,exitflag,output] = fmincon(optprob);

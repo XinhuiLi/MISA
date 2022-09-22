@@ -107,7 +107,8 @@ if length(O.M) ~= 1 || ... % More than 1 dataset
                 % too small
                 ix = current;
             else
-                [~,ix]=min(condition);
+                [~,tmp]=min(condition);
+                ix = ix(tmp);
             end
 
             if ix < (ss+1)

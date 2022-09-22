@@ -64,7 +64,8 @@ for tt = randperm(O.K) % iterate through subspaces
         % too small
         ix = current;
     else
-        [~,ix]=min(condition);
+        [~,tmp]=min(condition);
+        ix = ix(tmp);
     end
 
     for mm = O.M

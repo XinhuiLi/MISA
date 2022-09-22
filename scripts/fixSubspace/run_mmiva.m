@@ -1,7 +1,5 @@
-function [data1, isi, aux] = run_mmiva(X, Y, A, S, S_, M, num_pc)
+function [data1, isi, aux] = run_mmiva(X, Y, A, S, S_, M, num_pc, num_iter)
 % MMIVA
-
-n_iter = 10; % Number of combinatorial optimization
 
 ut = utils;
 
@@ -45,10 +43,11 @@ std_gica1_W1 = std(gica1.Y{1},[],2);
 gica1.objective(ut.stackW({diag(pi/sqrt(3) ./ std_gica1_W1)*gica1.W{1}})); % update gica1.W{1}
 
 % Combine MISA GICA with whitening matrices to initialize multimodal model
-W = cellfun(@(w) w,whtM,'Un',0);
-% W = cellfun(@(w) gica1.W{1}*w,whtM,'Un',0);
+% W = cellfun(@(w) w,whtM,'Un',0);
+W = cellfun(@(w) gica1.W{1}*w,whtM,'Un',0);
 W = cellfun(@(w,x) diag(pi/sqrt(3) ./ std(w*x,[],2))*w,W,X,'Un',0);
 
+%%
 w0_new = ut.stackW(W(M));
 
 data1 = MISAK(w0_new, M, S, X, ...
@@ -70,7 +69,7 @@ for mm = M
     else
         ii = [];
         jj = [];
-        for ii_ = 1:12 % Check with Rogers!!!
+        for ii_ = 1:num_pc
             jj_ = length(S2_{ii_,mm});
             if jj_ ~= 0
                 jj = [jj S2_{ii_,mm}];
@@ -78,13 +77,12 @@ for mm = M
             end
         end
         S2{mm} = sparse(ii, jj, ones(1,sum([S2_{:,mm}] ~= 0)), ...
-            12, sum([S2_{:,mm}] ~= 0), sum([S2_{:,mm}] ~= 0));
-        % Check with Rogers!!!
+            num_pc, sum([S2_{:,mm}] ~= 0), sum([S2_{:,mm}] ~= 0));
     end
 end
 
-eta = ones(12,1)*eta(1);
-beta = ones(12,1)*beta(1);
+eta = ones(num_pc,1)*eta(1);
+beta = ones(num_pc,1)*beta(1);
 data2 = MISAK(w0_short, data1.M, S2, data1.Y, ...
                 0.5*beta, eta, [], ...
                 gradtype, sc, preX);
@@ -100,31 +98,25 @@ barr = 1; % Barrier parameter
 m = 1; % Number of past gradients to use for LBFGS-B (m = 1 is equivalent to conjugate gradient)
 N = size(X(M(1)),2); % Number of observations
 Tol = .5*N*1e-9; % Tolerance for stopping criteria
-isi = zeros(1, n_iter+1);
+isi = zeros(1, num_iter+1);
 
-% MMIVA
-% make S_ a sparse matrix sS_
-sS_ = cell(size(M));
+% IVA
+optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
+[wout,fval,exitflag,output] = fmincon(optprob);
+
 for mm = M
-    if issparse(S_{mm})
-        sS_{mm} = S_{mm};
-    else
-        ii = [];
-        jj = [];
-        for ii_ = 1:K
-            jj_ = length(S_{ii_,mm});
-            if jj_ ~= 0
-                jj = [jj S_{ii_,mm}];
-                ii = [ii ii_*ones(1,jj_)];
-            end
-        end
-        sS_{mm} = sparse(ii, jj, ones(1,sum([S_{:,mm}] ~= 0)), ...
-            K, sum([S_{:,mm}] ~= 0), sum([S_{:,mm}] ~= 0));
-    end
+    W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
 end
+data1.objective(ut.stackW(W));
 
 % MMIVA
-data2.update(sS_, data2.M, data2.beta(1), [], data2.eta(1));
+% 1: data1.Y = data1.W * X
+% 2: data2.Y = data2.W * data1.Y
+% By 1 and 2: data2.Y = data2.W * data1.W * X
+data2 = MISAK(w0_short, data1.M, data1.S, data1.Y, ...
+    0.5*data1.beta, data1.eta, [], ...
+    gradtype, sc, preX);
+
 woutW0 = data2.stackW(data2.W);
 optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
 [wout,fval,exitflag,output] = fmincon(optprob);
@@ -139,7 +131,7 @@ end
 data1.objective(ut.stackW(final_W))
 isi(1) = data1.MISI(A)
 
-for ct = 2:n_iter+1
+for ct = 2:num_iter+1
     data2.combinatorial_optim()
     optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
     [wout,fval,exitflag,output] = fmincon(optprob);
