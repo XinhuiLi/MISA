@@ -1,4 +1,4 @@
-function [data1, isi, aux] = run_mmiva(X, Y, A, S, S_, M, num_pc, num_iter)
+function [data1, aux, isi] = run_mmiva(X, Y, A, S, M, num_pc, num_iter)
 % MMIVA
 
 ut = utils;
@@ -113,10 +113,28 @@ data1.objective(ut.stackW(W));
 % 1: data1.Y = data1.W * X
 % 2: data2.Y = data2.W * data1.Y
 % By 1 and 2: data2.Y = data2.W * data1.W * X
-data2 = MISAK(w0_short, data1.M, data1.S, data1.Y, ...
+% w0_rand = randn(size(w0_short));
+% same random initialization across modalities
+init_rand = randn(num_pc);
+for mm = M
+    W0_rand{mm} = init_rand;
+end
+w0_rand = ut.stackW(W0_rand);
+data2 = MISAK(w0_rand, data1.M, data1.S, data1.Y, ...
     0.5*data1.beta, data1.eta, [], ...
     gradtype, sc, preX);
 
+% for mm = M
+% %     W0_blkdiag{mm} = blkdiag(ones(2,2), ones(3,3), ones(4,4), 1, 1, 1);
+% % W0_blkdiag is not invertible with linearly dependent columns.
+%     W0_blkdiag{mm} = blkdiag(randn(2,2), randn(3,3), randn(4,4), 1, 1, 1);
+% end
+% w0_blkdiag = ut.stackW(W0_blkdiag);
+% data2 = MISAK(w0_blkdiag, data1.M, data1.S, data1.Y, ...
+%     0.5*data1.beta, data1.eta, [], ...
+%     gradtype, sc, preX);
+
+f = @(x) data2.objective(x);
 woutW0 = data2.stackW(data2.W);
 optprob = ut.getop(woutW0, f, c, barr, {'lbfgs' m}, Tol);
 [wout,fval,exitflag,output] = fmincon(optprob);
@@ -132,6 +150,7 @@ data1.objective(ut.stackW(final_W))
 isi(1) = data1.MISI(A)
 
 for ct = 2:num_iter+1
+    figure,imagesc(final_W{1}*A{1},max(max(abs(final_W{1}*A{1}))).*[-1 1]);colorbar();
     data2.combinatorial_optim()
     optprob = ut.getop(ut.stackW(data2.W), f, c, barr, {'lbfgs' m}, Tol);
     [wout,fval,exitflag,output] = fmincon(optprob);

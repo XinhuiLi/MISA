@@ -1,4 +1,4 @@
-function [data1, isi, aux] = run_unimodal(X, Y, A, S, M, num_pc, num_iter)
+function [data1, aux, isi] = run_unimodal(X, Y, A, S, M, num_pc, num_iter)
 % Unimodal: PCA+ICA+CO
 
 ut = utils;
@@ -60,7 +60,7 @@ data1 = MISAK(w0_new, M, S, X, ...
     gradtype, sc, preX);
 
 for mm = M
-    W0{mm} = [eye(num_pc),zeros(num_pc,size(Y{M(1)},1)-num_pc)];
+    W0{mm} = [eye(num_pc),zeros(num_pc,0)];
 end
 w0_short = ut.stackW(W0);
 
