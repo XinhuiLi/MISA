@@ -1,5 +1,10 @@
-function [data1, aux, isi] = run_unimodal(X, Y, A, S, M, num_pc, num_iter)
+function [data1, aux, isi] = run_unimodal(X, S, M, num_pc, num_iter, varargin)
 % Unimodal: PCA+ICA+CO
+
+if ~isempty(varargin)
+    Y = varargin{1};
+    A = varargin{2};
+end
 
 ut = utils;
 
@@ -32,7 +37,7 @@ for mm = M
     [W1,wht] = icatb_runica(H,'weights',gica1.W{1},'ncomps',size(H,1),'sphering', 'off', 'verbose', 'off', 'posact', 'off', 'bias', 'on');
     std_W1 = std(W1*H,[],2); % Ignoring wht because Infomax run with 'sphering' 'off' --> wht = eye(comps)
     W1 = diag(pi/sqrt(3) ./ std_W1) * W1;
-
+    
     % RUN GICA using MISA: continuing from Infomax above...
     % Could use stochastic optimization, but not doing so because MISA does not implement bias weights (yet)...
     % gica1.stochastic_opt('verbose', 'off', 'weights', gica1.W{1}, 'bias', 'off');%, 'block', 1100);
@@ -96,7 +101,10 @@ for mm = M
     final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, W is 12x20k
 end
 data1.objective(ut.stackW(final_W))
-isi(1) = data1.MISI(A)
+
+if exist('A','var')
+    isi(1) = data1.MISI(A)
+end
 
 for ct = 2:num_iter+1
     data2.combinatorial_optim()
@@ -109,7 +117,9 @@ for ct = 2:num_iter+1
         final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
     end
     data1.objective(ut.stackW(final_W))
-    isi(ct) = data1.MISI(A)
+    if exist('A','var')
+        isi(ct) = data1.MISI(A)
+    end
 end
 [~, ix] = min([aux{2,:}]);
 

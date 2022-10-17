@@ -34,7 +34,11 @@ end
 
 A = cellfun(@(x) sqrt(N./(length(M)*sum(x(:).^2)))*(x*H), X, 'Un', 0);
 norm_A = cellfun(@(a) sum(a.^2), A, 'Un', 0)';
-norm_A = sqrt(sum(cell2mat(norm_A)));
+if M == 1
+    norm_A = sqrt(cell2mat(norm_A));
+else
+    norm_A = sqrt(sum(cell2mat(norm_A)));
+end
 A = cellfun(@(a) a./repmat(norm_A,size(a,1),1),A,'Un',0);
 
 if strcmpi(rec_type, 'WT')

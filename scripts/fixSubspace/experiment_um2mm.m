@@ -1,12 +1,13 @@
 close all; clear; clc;
 % @gsd: generate simulated data
 % @gsm: generate simulated mixing matrix
-
+%%
 format compact
 
 debug = false;
 
 addpath("/Users/xli77/Documents/MISA/scripts");
+addpath("/Users/xli77/Documents/MISA/scripts/fixSubspace/");
 addpath("/Users/xli77/Documents/MISA/scripts/toy_example/");
 addpath(genpath('/Users/xli77/Documents/gift/GroupICATv4.0c'));
 
@@ -15,7 +16,13 @@ addpath(genpath('/Users/xli77/Documents/gift/GroupICATv4.0c'));
 seed=7;
 Acond=3; % 1 means orthogonal matrix
 SNR=(1+999)/1;
+num_pc = 12;
+num_iter = 20;
+M = [1, 2];
 
+X = load('/Users/xli77/Documents/MISA/MISA-data/sMRI-fMRI/X.mat').X;
+
+%%
 S_ = {[1 2], [1 2]; ...
       [3 4 5], [3 4 5]; ...
       [6 7 8 9], [6 7 8 9]; ...
@@ -26,9 +33,36 @@ S_ = {[1 2], [1 2]; ...
       [     ], [   11]; ...
       [     ], [   12]};
 
-M = [1, 2];
+% S_ = {[1  2], [1  2]; ...
+%       [3  4], [3  4]; ...
+%       [5  6], [5  6]; ...
+%       [7  8], [7  8]; ...
+%       [9 10], [9 10]; ...
+%       [  11], [    ]; ...
+%       [  12], [    ]; ...
+%       [    ], [  11]; ...
+%       [    ], [  12]};
 
-X = load('/Users/xli77/Documents/MISA/MISA-data/sMRI-fMRI/X.mat').X;
+% S_ = {[1 2 3], [1 2 3]; ...
+%       [4 5 6], [4 5 6]; ...
+%       [7 8 9], [7 8 9]; ...
+%       [   10], [     ]; ...
+%       [   11], [     ]; ...
+%       [   12], [     ]; ...
+%       [     ], [   10]; ...
+%       [     ], [   11]; ...
+%       [     ], [   12]};
+
+% S_ = {[1 2 3 4], [1 2 3 4]; ...
+%       [5 6 7 8], [5 6 7 8]; ...
+%       [  9], [   ]; ...
+%       [ 10], [   ]; ...
+%       [ 11], [   ]; ...
+%       [ 12], [   ]; ...
+%       [   ], [  9]; ...
+%       [   ], [ 10]; ...
+%       [   ], [ 11]; ...
+%       [   ], [ 12]};
 
 % Set Kotz parameters to multivariate laplace
 K = size(S_,1);
@@ -56,24 +90,31 @@ for mm = M
     end
 end
 
-num_pc = 12;
-num_iter = 10;
-
 %%
 % unimodal
-[data1_um, aux_um] = run_unimodal(X, S, M, num_pc, num_iter);
+[data1_um, aux_um, isi_um] = run_unimodal(X, S, M, num_pc, num_iter);
 
 % unimodal + multimodal
-[data1_ummm, aux_ummm] = run_multimodal_unimodal(X, S, M, num_pc, num_iter);
+[data1_ummm, aux_ummm, isi_ummm] = run_multimodal_unimodal(X, S, M, num_pc, num_iter);
+
 
 %%
 outpath = '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/um2mm/subspace_struct_234111';
+% outpath = '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/um2mm/subspace_struct_2222211';
+% outpath = '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/um2mm/subspace_struct_333111';
+% outpath = '/Users/xli77/Documents/MISA/results/SIVA/fixedSubspace/um2mm/subspace_struct_441111';
 
 % save(fullfile(outpath,'um_neuroimaging.mat'),'data1_um','aux_um');
-% save(fullfile(outpath,'ummm_neuroimaging.mat'),'data1_ummm','aux_ummm');
+save(fullfile(outpath,'ummm_neuroimaging.mat'),'data1_ummm','aux_ummm');
 
-load(fullfile(outpath,'um_neuroimaging.mat'),'data1_um','aux_um');
-load(fullfile(outpath,'ummm_neuroimaging.mat'),'data1_ummm','aux_ummm');
+% load(fullfile(outpath,'um_neuroimaging.mat'),'data1_um','aux_um');
+% load(fullfile(outpath,'ummm_neuroimaging.mat'),'data1_ummm','aux_ummm');
+
+%%
+Y1 = data1_um.Y;
+Y2 = data1_ummm.Y;
+save(fullfile(outpath,'um_neuroimaging_Y.mat'),'Y1');
+save(fullfile(outpath,'ummm_neuroimaging_Y.mat'),'Y2');
 
 %%
 num_row = 2;

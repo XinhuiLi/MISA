@@ -1,5 +1,10 @@
-function [data1, aux, isi] = run_multimodal_unimodal(X, Y, A, S, M, num_pc, num_iter) %
+function [data1, aux, isi] = run_multimodal_unimodal(X, S, M, num_pc, num_iter, varargin)
 % Multimodal + unimodal: MGPCA + separate ICA + CO
+
+if ~isempty(varargin)
+    Y = varargin{1};
+    A = varargin{2};
+end
 
 ut = utils;
 
@@ -97,7 +102,9 @@ for mm = M
     final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, W is 12x20k
 end
 data1.objective(ut.stackW(final_W))
-isi(1) = data1.MISI(A)
+if exist('A','var')
+    isi(1) = data1.MISI(A)
+end
 
 for ct = 2:num_iter+1
     data2.combinatorial_optim()
@@ -110,7 +117,9 @@ for ct = 2:num_iter+1
         final_W{mm} = data2.W{mm} * W{mm}; % data2.W is 12x12, data1.W is 12x20k
     end
     data1.objective(ut.stackW(final_W))
-    isi(ct) = data1.MISI(A)
+    if exist('A','var')
+        isi(ct) = data1.MISI(A)
+    end
 end
 [~, ix] = min([aux{2,:}]);
 
